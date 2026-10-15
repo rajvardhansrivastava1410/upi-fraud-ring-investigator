@@ -1,0 +1,20 @@
+{
+  "alert_id": "A-051",
+  "hypotheses": [
+    {
+      "id": "family_phone",
+      "name": "Household shared phone",
+      "summary": "Several family members using one handset explains repeated device sharing without coordination.",
+      "check": "KYC address match across accounts, device older than the accounts, no rapid onward transfers.",
+      "points": 0.15
+    },
+    {
+      "id": "cyber_cafe",
+      "name": "Shared public terminal",
+      "summary": "A cyber cafe or kiosk device is used by many unrelated people.",
+      "check": "Many unrelated payers over a long period, with no common beneficiary.",
+      "points": 0.10
+    }
+  ],
+  "what_ifs": []
+}

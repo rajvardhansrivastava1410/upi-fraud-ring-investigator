@@ -1,0 +1,42 @@
+{
+  "status": "TRAINED_SUCCESS",
+  "model_architecture": "Supervised Graph Ensemble Classifier (RandomForest + Topological Embeddings)",
+  "dataset_metrics": {
+    "total_transactions": 680,
+    "fraud_ground_truth": 26,
+    "benign_samples": 654,
+    "test_split_ratio": 0.2
+  },
+  "performance": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "roc_auc": 1.0,
+    "confusion_matrix": [
+      [
+        131,
+        0
+      ],
+      [
+        0,
+        5
+      ]
+    ]
+  },
+  "feature_importances": {
+    "log_amount": 0.5802,
+    "fund_retention_ratio": 0.2122,
+    "receiver_in_degree": 0.0531,
+    "rapid_hop_latency_sec": 0.0498,
+    "device_concurrency_vpas": 0.0442,
+    "sender_out_degree": 0.0405,
+    "is_receiver_merchant": 0.0198
+  },
+  "gemini_fine_tuning": {
+    "instruction_dataset": "/Users/debrajmukherjee/.gemini/antigravity/scratch/upi-fraud-ring-investigator/data/gemini_training_pairs.jsonl",
+    "paired_examples_generated": 150,
+    "status": "READY_FOR_GEMINI_SFT_AND_IN_CONTEXT_REASONING"
+  },
+  "timestamp": "2026-10-15T16:41:27.535331"
+}

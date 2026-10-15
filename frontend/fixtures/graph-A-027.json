@@ -1,0 +1,89 @@
+{
+  "nodes": [
+    { "id": "acc_hub", "type": "account", "label": "acct_f4b1" },
+    { "id": "acc_hop1", "type": "account", "label": "acct_2e9d" },
+    { "id": "acc_hop2", "type": "account", "label": "acct_7c33" },
+    { "id": "acc_hop3", "type": "account", "label": "acct_a81f" },
+    { "id": "acc_sink", "type": "account", "label": "acct_0d52" },
+    { "id": "dev_44", "type": "device", "label": "dev_44x" },
+    { "id": "acc_src1", "type": "account", "label": "acct_bb10" },
+    { "id": "acc_src2", "type": "account", "label": "acct_cc21" }
+  ],
+  "edges": [
+    {
+      "id": "t210",
+      "source": "acc_src1",
+      "target": "acc_hub",
+      "type": "transfer",
+      "amount": 18000,
+      "event_time": "2026-10-05T11:00:00+05:30",
+      "ingest_time": "2026-10-05T11:01:00+05:30",
+      "incomplete": true
+    },
+    {
+      "id": "t211",
+      "source": "acc_src2",
+      "target": "acc_hub",
+      "type": "transfer",
+      "amount": 12000,
+      "event_time": "2026-10-05T11:03:00+05:30",
+      "ingest_time": "2026-10-05T11:04:00+05:30"
+    },
+    {
+      "id": "t212",
+      "source": "acc_hub",
+      "target": "acc_hop1",
+      "type": "transfer",
+      "amount": 28500,
+      "event_time": "2026-10-05T11:08:00+05:30",
+      "ingest_time": "2026-10-05T11:09:00+05:30"
+    },
+    {
+      "id": "t213",
+      "source": "acc_hop1",
+      "target": "acc_hop2",
+      "type": "transfer",
+      "amount": 27000,
+      "event_time": "2026-10-05T11:15:00+05:30",
+      "ingest_time": "2026-10-05T11:17:00+05:30",
+      "incomplete": true
+    },
+    {
+      "id": "t214",
+      "source": "acc_hop2",
+      "target": "acc_hop3",
+      "type": "transfer",
+      "amount": 25500,
+      "event_time": "2026-10-05T11:22:00+05:30",
+      "ingest_time": "2026-10-05T11:24:00+05:30"
+    },
+    {
+      "id": "t215",
+      "source": "acc_hop3",
+      "target": "acc_sink",
+      "type": "transfer",
+      "amount": 24000,
+      "event_time": "2026-10-05T11:31:00+05:30",
+      "ingest_time": "2026-10-05T11:33:00+05:30",
+      "incomplete": true
+    },
+    {
+      "id": "d11",
+      "source": "acc_hub",
+      "target": "dev_44",
+      "type": "uses_device",
+      "event_time": "2026-09-26T08:00:00+05:30",
+      "ingest_time": "2026-09-26T08:01:00+05:30"
+    },
+    {
+      "id": "d12",
+      "source": "acc_hop1",
+      "target": "dev_44",
+      "type": "uses_device",
+      "event_time": "2026-09-27T10:00:00+05:30",
+      "ingest_time": "2026-09-27T10:01:00+05:30",
+      "incomplete": true
+    }
+  ],
+  "evidence_path": ["t210", "t211", "t212", "t213", "t214", "t215"]
+}

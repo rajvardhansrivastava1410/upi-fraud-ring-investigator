@@ -1,0 +1,44 @@
+{
+  "status": "TRAINED_SUCCESS",
+  "dataset": "Kaggle Credit Card Fraud Detection (284k Tx Benchmark)",
+  "training_time_seconds": 15.86,
+  "dataset_statistics": {
+    "total_records_processed": 20492,
+    "fraud_cases": 492,
+    "licit_baseline_cases": 20000
+  },
+  "performance": {
+    "accuracy": 0.998,
+    "precision": 0.9248,
+    "recall": 1.0,
+    "f1_score": 0.9609,
+    "roc_auc": 0.9999,
+    "confusion_matrix": [
+      [
+        4990,
+        10
+      ],
+      [
+        0,
+        123
+      ]
+    ]
+  },
+  "top_feature_importances": {
+    "Time": 0.2489,
+    "V14": 0.167,
+    "V3": 0.1112,
+    "V10": 0.0712,
+    "V17": 0.0662,
+    "V12": 0.0556,
+    "V4": 0.0545,
+    "V16": 0.0532,
+    "V9": 0.0309,
+    "V11": 0.0248
+  },
+  "gemini_fine_tuning": {
+    "instruction_dataset": "/Users/debrajmukherjee/.gemini/antigravity/scratch/upi-fraud-ring-investigator/data/gemini_creditcard_training.jsonl",
+    "paired_examples_generated": 150,
+    "status": "READY_FOR_GEMINI_SFT"
+  }
+}

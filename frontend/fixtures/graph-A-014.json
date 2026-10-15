@@ -1,0 +1,192 @@
+{
+  "nodes": [
+    {
+      "id": "acc_v1",
+      "type": "account",
+      "label": "acct_3b1c"
+    },
+    {
+      "id": "acc_v2",
+      "type": "account",
+      "label": "acct_8d42"
+    },
+    {
+      "id": "acc_v3",
+      "type": "account",
+      "label": "acct_c07e"
+    },
+    {
+      "id": "acc_v4",
+      "type": "account",
+      "label": "acct_55aa"
+    },
+    {
+      "id": "acc_m1",
+      "type": "account",
+      "label": "acct_7f3a"
+    },
+    {
+      "id": "acc_m2",
+      "type": "account",
+      "label": "acct_e219"
+    },
+    {
+      "id": "mer_91",
+      "type": "merchant",
+      "label": "mer_91 (new)"
+    },
+    {
+      "id": "dev_22",
+      "type": "device",
+      "label": "dev_22b"
+    },
+    {
+      "id": "cmp_301",
+      "type": "complaint",
+      "label": "cmp_301"
+    },
+    {
+      "id": "cmp_302",
+      "type": "complaint",
+      "label": "cmp_302"
+    },
+    {
+      "id": "cmp_303",
+      "type": "complaint",
+      "label": "cmp_303"
+    }
+  ],
+  "edges": [
+    {
+      "id": "q1",
+      "source": "acc_m1",
+      "target": "acc_v1",
+      "type": "collect_request",
+      "event_time": "2026-09-28T10:02:00+05:30",
+      "ingest_time": "2026-09-28T10:03:00+05:30",
+      "amount": 4500
+    },
+    {
+      "id": "q2",
+      "source": "acc_m1",
+      "target": "acc_v2",
+      "type": "collect_request",
+      "event_time": "2026-09-28T10:03:00+05:30",
+      "ingest_time": "2026-09-28T10:04:00+05:30",
+      "amount": 3200
+    },
+    {
+      "id": "q3",
+      "source": "acc_m1",
+      "target": "acc_v3",
+      "type": "collect_request",
+      "event_time": "2026-09-28T10:05:00+05:30",
+      "ingest_time": "2026-09-28T10:06:00+05:30",
+      "amount": 5100
+    },
+    {
+      "id": "t099",
+      "source": "acc_v4",
+      "target": "acc_m1",
+      "type": "transfer",
+      "event_time": "2026-09-20T18:40:00+05:30",
+      "ingest_time": "2026-09-20T18:41:00+05:30",
+      "amount": 300
+    },
+    {
+      "id": "t101",
+      "source": "acc_v1",
+      "target": "acc_m1",
+      "type": "transfer",
+      "event_time": "2026-09-28T10:07:00+05:30",
+      "ingest_time": "2026-09-28T10:08:00+05:30",
+      "amount": 4500
+    },
+    {
+      "id": "t102",
+      "source": "acc_v2",
+      "target": "acc_m1",
+      "type": "transfer",
+      "event_time": "2026-09-28T10:09:00+05:30",
+      "ingest_time": "2026-09-28T10:10:00+05:30",
+      "amount": 3200
+    },
+    {
+      "id": "t103",
+      "source": "acc_v3",
+      "target": "acc_m1",
+      "type": "transfer",
+      "event_time": "2026-09-28T10:12:00+05:30",
+      "ingest_time": "2026-09-28T10:13:00+05:30",
+      "amount": 5100
+    },
+    {
+      "id": "t120",
+      "source": "acc_m1",
+      "target": "acc_m2",
+      "type": "transfer",
+      "event_time": "2026-09-28T10:16:00+05:30",
+      "ingest_time": "2026-09-28T10:18:00+05:30",
+      "amount": 12000
+    },
+    {
+      "id": "t121",
+      "source": "acc_m2",
+      "target": "mer_91",
+      "type": "transfer",
+      "event_time": "2026-09-28T10:19:00+05:30",
+      "ingest_time": "2026-09-28T10:22:00+05:30",
+      "amount": 11500
+    },
+    {
+      "id": "d11",
+      "source": "acc_m1",
+      "target": "dev_22",
+      "type": "uses_device",
+      "event_time": "2026-09-03T08:00:00+05:30",
+      "ingest_time": "2026-09-03T08:01:00+05:30"
+    },
+    {
+      "id": "d12",
+      "source": "acc_m2",
+      "target": "dev_22",
+      "type": "uses_device",
+      "event_time": "2026-09-25T09:30:00+05:30",
+      "ingest_time": "2026-09-25T09:31:00+05:30"
+    },
+    {
+      "id": "c301",
+      "source": "cmp_301",
+      "target": "acc_m1",
+      "type": "complaint_about",
+      "event_time": "2026-09-29T09:15:00+05:30",
+      "ingest_time": "2026-09-30T14:15:00+05:30"
+    },
+    {
+      "id": "c302",
+      "source": "cmp_302",
+      "target": "acc_m1",
+      "type": "complaint_about",
+      "event_time": "2026-10-02T11:30:00+05:30",
+      "ingest_time": "2026-10-05T09:30:00+05:30"
+    },
+    {
+      "id": "c303",
+      "source": "cmp_303",
+      "target": "acc_m2",
+      "type": "complaint_about",
+      "event_time": "2026-10-04T16:20:00+05:30",
+      "ingest_time": "2026-10-11T09:20:00+05:30"
+    }
+  ],
+  "evidence_path": [
+    "t101",
+    "t102",
+    "t103",
+    "t120",
+    "t121",
+    "c301",
+    "c302",
+    "c303"
+  ]
+}

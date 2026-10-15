@@ -1,0 +1,12 @@
+{
+  "nodes": [
+    { "id": "acc_fallback", "type": "account", "label": "Suspicious Acc" },
+    { "id": "dev_fallback", "type": "device", "label": "Device Hash" },
+    { "id": "mule_fallback", "type": "account", "label": "Mule Acc" }
+  ],
+  "edges": [
+    { "id": "e_fb_1", "source": "acc_fallback", "target": "dev_fallback", "type": "uses_device", "event_time": "2024-03-01T10:00:00Z", "ingest_time": "2024-03-01T10:00:05Z" },
+    { "id": "e_fb_2", "source": "acc_fallback", "target": "mule_fallback", "type": "transfer", "amount": 15000, "event_time": "2024-03-01T10:05:00Z", "ingest_time": "2024-03-01T10:05:10Z" }
+  ],
+  "evidence_path": ["e_fb_1", "e_fb_2"]
+}
