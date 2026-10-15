@@ -1,0 +1,52 @@
+{
+  "status": "TRAINED_SUCCESS",
+  "dataset": "Elliptic Financial Graph Benchmark (with 166-dim Node Embeddings)",
+  "training_time_seconds": 23.02,
+  "dataset_statistics": {
+    "total_graph_edges": 234355,
+    "labelled_nodes_used": 18180,
+    "illicit_rings_count": 4545,
+    "licit_samples_count": 13635,
+    "node_embeddings_indexed": 46564
+  },
+  "performance": {
+    "accuracy": 0.9923,
+    "precision": 0.9885,
+    "recall": 0.9806,
+    "f1_score": 0.9845,
+    "roc_auc": 0.999,
+    "confusion_matrix": [
+      [
+        3396,
+        13
+      ],
+      [
+        22,
+        1114
+      ]
+    ]
+  },
+  "topological_feature_importances": {
+    "graph_emb_f1": 0.3636,
+    "graph_emb_f3": 0.2032,
+    "graph_emb_f5": 0.1297,
+    "graph_emb_f6": 0.1093,
+    "graph_emb_f7": 0.0541,
+    "graph_emb_f9": 0.0388,
+    "graph_emb_f4": 0.034,
+    "graph_emb_f10": 0.0221,
+    "graph_emb_f2": 0.022,
+    "in_degree": 0.0069,
+    "total_degree": 0.0062,
+    "degree_ratio": 0.0043,
+    "out_degree": 0.0033,
+    "is_source_hub": 0.0009,
+    "graph_emb_f8": 0.0009,
+    "is_sink_aggregator": 0.0008
+  },
+  "gemini_fine_tuning": {
+    "instruction_dataset": "/Users/debrajmukherjee/.gemini/antigravity/scratch/upi-fraud-ring-investigator/data/gemini_elliptic_training.jsonl",
+    "paired_examples_generated": 200,
+    "status": "READY_FOR_GEMINI_SFT"
+  }
+}

@@ -1,24 +1,140 @@
-# Logs
-logs
-*.log
+# ==============================================================================
+# AegisUPI - .gitignore for GitHub Repository
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Large Datasets (>100MB blocked by GitHub)
+# ------------------------------------------------------------------------------
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Ignore raw data folders
+data/*.csv
+backend/data/*.csv
+
+# Keep JSON models, ground truth, and small Gemini instruction datasets
+!data/*.json
+!data/*.jsonl
+!data/dataset.json
+!data/ground_truth.json
+!data/*_model_results.json
+!data/trained_model.json
+!data/ieee_test_evaluation.json
+!data/gemini_*.jsonl
+
+# ------------------------------------------------------------------------------
+# 2. Environment Variables & Secrets
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+*.crt
+api_keys.json
+secrets/
+
+# ------------------------------------------------------------------------------
+# 3. Python Virtual Environments & Packages
+# ------------------------------------------------------------------------------
+venv/
+.venv/
+env/
+ENV/
+backend/venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ------------------------------------------------------------------------------
+# 4. Python Bytecode, Caches & Testing
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+htmlcov/
+
+# ------------------------------------------------------------------------------
+# 5. Node / Frontend Dependencies & Builds
+# ------------------------------------------------------------------------------
+node_modules/
+frontend/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+.pnpm-debug.log*
+frontend/dist/
+frontend/build/
+.npm
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# ------------------------------------------------------------------------------
+# 6. Operating System Artifacts (macOS, Windows, Linux)
+# ------------------------------------------------------------------------------
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ------------------------------------------------------------------------------
+# 7. IDE, Editor & Tooling Settings
+# ------------------------------------------------------------------------------
+.vscode/
+!.vscode/settings.json.example
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ------------------------------------------------------------------------------
+# 8. Temporary Files & Logs
+# ------------------------------------------------------------------------------
+*.log
+logs/
+*.tmp
+*.bak
+.system_generated/
+

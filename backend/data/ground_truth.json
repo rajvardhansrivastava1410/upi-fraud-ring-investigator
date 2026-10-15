@@ -1,0 +1,65 @@
+[
+  {
+    "ring_id": "RING_01_MULE_CHAIN",
+    "pattern_type": "MULE_CHAIN_PASSTHROUGH",
+    "severity": "CRITICAL",
+    "involved_accounts": [
+      "ACC_0080",
+      "ACC_0081",
+      "ACC_0082",
+      "ACC_0083"
+    ],
+    "transactions": [
+      "TX_00531",
+      "TX_00532",
+      "TX_00533"
+    ],
+    "description": "Rapid multi-hop fund dilution across sequential mule accounts within 8 minutes",
+    "stolen_amount": 88000.0
+  },
+  {
+    "ring_id": "RING_02_DEVICE_SYNDICATE",
+    "pattern_type": "SHARED_DEVICE_BURST",
+    "severity": "CRITICAL",
+    "involved_accounts": [
+      "ACC_0090",
+      "ACC_0091",
+      "ACC_0092",
+      "ACC_0093",
+      "ACC_0094",
+      "ACC_0099"
+    ],
+    "device_id": "DEV_SYNDICATE_ALPHA",
+    "transactions": [
+      "TX_00534",
+      "TX_00535",
+      "TX_00536",
+      "TX_00537",
+      "TX_00538"
+    ],
+    "description": "Burst transfers from 5 distinct VPAs routed through a single unauthorized device ID to one sink account",
+    "stolen_amount": 282964.54000000004
+  },
+  {
+    "ring_id": "RING_03_SMURFING_POOL",
+    "pattern_type": "FAN_IN_AGGREGATOR_CASHOUT",
+    "severity": "HIGH",
+    "involved_accounts": [
+      "ACC_0100",
+      "ACC_0101",
+      "ACC_0102",
+      "ACC_0103",
+      "ACC_0110",
+      "ACC_0119"
+    ],
+    "transactions": [
+      "TX_00539",
+      "TX_00540",
+      "TX_00541",
+      "TX_00542",
+      "TX_00543"
+    ],
+    "description": "Multi-victim fan-in smurfing into aggregator account with immediate 98% cashout within 30 minutes",
+    "stolen_amount": 116436.49
+  }
+]

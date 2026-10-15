@@ -1,0 +1,18 @@
+{
+  "status": "TEST_EVALUATION_SUCCESS",
+  "dataset": "IEEE-CIS Out-of-Sample Test Stream (test_transaction.csv + test_identity.csv)",
+  "evaluation_time_seconds": 16.61,
+  "test_transactions_evaluated": 100000,
+  "risk_breakdown": {
+    "high_risk_flagged": 2514,
+    "medium_risk_suspicious": 48764,
+    "low_risk_cleared": 48722,
+    "flagged_fraud_rate_pct": 2.51
+  },
+  "output_submission_file": "/Users/debrajmukherjee/.gemini/antigravity/scratch/upi-fraud-ring-investigator/data/ieee_test_predictions.csv",
+  "gemini_surveillance_dataset": {
+    "path": "/Users/debrajmukherjee/.gemini/antigravity/scratch/upi-fraud-ring-investigator/data/gemini_ieeecis_test_surveillance.jsonl",
+    "pairs_generated": 150,
+    "status": "READY_FOR_GEMINI_SURVEILLANCE"
+  }
+}
