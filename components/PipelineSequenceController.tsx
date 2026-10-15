@@ -10,26 +10,26 @@ interface Props {
 export default function PipelineSequenceController({ onSequenceStageChange, onReplay }: Props) {
   const [stage, setStage] = useState<'GLOBE_INIT' | 'PIPELINE_ENGAGED' | 'NETWORK_ANALYSIS'>('GLOBE_INIT');
   const [showIntroBanner, setShowIntroBanner] = useState<boolean>(true);
-  const [tickerText, setTickerText] = useState<string>('INITIALIZING CYBER TELEMETRY GLOBE...');
+  const [tickerText, setTickerText] = useState<string>('PHASE 1/3: GLOBAL ORBIT SCAN · TARGETING INDIAN SUB-CONTINENT...');
 
   useEffect(() => {
     // Stage 0: GLOBE_INIT (0s - 2.5s)
     setStage('GLOBE_INIT');
     setShowIntroBanner(true);
-    setTickerText('PHASE 1/3: 3D CYBERNETIC GLOBE INITIALIZATION...');
+    setTickerText('PHASE 1/3: GLOBAL ORBIT SCAN · TARGETING INDIAN SUB-CONTINENT...');
     if (onSequenceStageChange) onSequenceStageChange('GLOBE_INIT');
 
     // Stage 1: PIPELINE_ENGAGED (2.5s - 5.0s)
     const t1 = setTimeout(() => {
       setStage('PIPELINE_ENGAGED');
-      setTickerText('PHASE 2/3: PIPELINE BEAMS ENGAGED · TRACING CROSS-BORDER LIQUIDITY...');
+      setTickerText('PHASE 2/3: VECTOR ZOOM INTO INDIA · UPI LIQUIDITY PIPELINES ENGAGED...');
       if (onSequenceStageChange) onSequenceStageChange('PIPELINE_ENGAGED');
     }, 2500);
 
     // Stage 2: NETWORK_ANALYSIS (5.0s+)
     const t2 = setTimeout(() => {
       setStage('NETWORK_ANALYSIS');
-      setTickerText('PHASE 3/3: NETWORK TOPOLOGY ACTIVE · 180 ACCOUNTS · 680 CORRIDORS');
+      setTickerText('PHASE 3/3: DOMESTIC INDIA FRAUD TOPOLOGY ACTIVE · 180 ACCOUNTS · RUPEE (₹) TELEMETRY');
       if (onSequenceStageChange) onSequenceStageChange('NETWORK_ANALYSIS');
     }, 5000);
 
@@ -48,19 +48,19 @@ export default function PipelineSequenceController({ onSequenceStageChange, onRe
   const handleReplay = () => {
     setStage('GLOBE_INIT');
     setShowIntroBanner(true);
-    setTickerText('PHASE 1/3: 3D CYBERNETIC GLOBE INITIALIZATION...');
+    setTickerText('PHASE 1/3: GLOBAL ORBIT SCAN · TARGETING INDIAN SUB-CONTINENT...');
     if (onSequenceStageChange) onSequenceStageChange('GLOBE_INIT');
     if (onReplay) onReplay();
 
     setTimeout(() => {
       setStage('PIPELINE_ENGAGED');
-      setTickerText('PHASE 2/3: PIPELINE BEAMS ENGAGED · TRACING CROSS-BORDER LIQUIDITY...');
+      setTickerText('PHASE 2/3: VECTOR ZOOM INTO INDIA · UPI LIQUIDITY PIPELINES ENGAGED...');
       if (onSequenceStageChange) onSequenceStageChange('PIPELINE_ENGAGED');
     }, 2500);
 
     setTimeout(() => {
       setStage('NETWORK_ANALYSIS');
-      setTickerText('PHASE 3/3: NETWORK TOPOLOGY ACTIVE · 180 ACCOUNTS · 680 CORRIDORS');
+      setTickerText('PHASE 3/3: DOMESTIC INDIA FRAUD TOPOLOGY ACTIVE · 180 ACCOUNTS · RUPEE (₹) TELEMETRY');
       if (onSequenceStageChange) onSequenceStageChange('NETWORK_ANALYSIS');
     }, 5000);
 
@@ -78,9 +78,9 @@ export default function PipelineSequenceController({ onSequenceStageChange, onRe
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-ping" />
               <span className="font-mono text-xs font-black tracking-widest text-white uppercase">
-                AEGIS HIGH-TECH SURVEILLANCE
+                AEGIS INDIA UPI SURVEILLANCE
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-green-950 text-green-400 border border-green-500">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-green-950 text-green-400 border border-green-500 font-bold">
                 {stage}
               </span>
             </div>
@@ -95,10 +95,10 @@ export default function PipelineSequenceController({ onSequenceStageChange, onRe
       <button
         onClick={handleReplay}
         className="fixed bottom-12 right-6 z-40 bg-black/90 hover:bg-green-950 border border-green-500/80 text-green-400 hover:text-white px-3 py-1.5 rounded font-mono text-xs shadow-[0_0_15px_rgba(0,255,102,0.3)] transition-all flex items-center gap-2"
-        title="Replay opening globe and pipeline animation"
+        title="Replay opening globe zoom into India"
       >
         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-        REPLAY OPENING SEQUENCE ↺
+        <span>REPLAY INDIA ZOOM</span>
       </button>
     </>
   );

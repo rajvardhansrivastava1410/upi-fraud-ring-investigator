@@ -7,6 +7,7 @@ import CyberGlobe3D, { type GlobeNode, type GlobeLink } from '@/components/Cyber
 import PipelineSequenceController from '@/components/PipelineSequenceController';
 import KaggleDataHub from '@/components/KaggleDataHub';
 import ConnectionInspectorDrawer from '@/components/ConnectionInspectorDrawer';
+import LiveRupeeTransactionFeed from '@/components/LiveRupeeTransactionFeed';
 
 // Leaflet and Cytoscape require dynamic import with ssr: false
 const CartoWorldMap = dynamic(() => import('@/components/CartoWorldMap'), {
@@ -15,7 +16,7 @@ const CartoWorldMap = dynamic(() => import('@/components/CartoWorldMap'), {
     <div className="flex h-full items-center justify-center bg-black">
       <div className="flex items-center gap-2 font-mono text-xs text-green-400">
         <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-ping" />
-        LOADING CARTO DARK MATTER BASEMAP...
+        LOADING CARTO INDIA BASEMAP...
       </div>
     </div>
   ),
@@ -54,7 +55,7 @@ export default function Home() {
   const [tickerIndex, setTickerIndex] = useState(0);
   const [showKaggleHub, setShowKaggleHub] = useState(false);
 
-  // Fetch live global nodes, links, and impossible travel from FastAPI backend
+  // Fetch live domestic Indian nodes, links, and impossible travel from FastAPI backend
   useEffect(() => {
     fetch('/geo/surveillance')
       .then((res) => {
@@ -63,22 +64,21 @@ export default function Home() {
       })
       .then((data) => {
         if (data.nodes && data.links) {
-          // Enhance domestic and offshore bank labels so user-hdfc and user-amex are prominent
           const enhancedNodes = data.nodes.map((n: GlobeNode) => {
-            const isOffshore = n.country !== 'India' || n.currency === 'USD';
+            const indianBanks = ['HDFC', 'SBI', 'ICICI', 'AXIS', 'KOTAK', 'PAYTM_PB'];
             let bank = n.bank;
-            let label = n.label;
-            if (isOffshore) {
-              if (n.city === 'Dubai' || n.city === 'George Town') bank = 'AMEX';
-              else if (n.city === 'New York') bank = 'CHASE';
-              else if (n.city === 'London' || n.city === 'Zurich') bank = 'HSBC';
-              else bank = 'AMEX';
-              label = `user-amex-${n.id.slice(-4)}`;
-            } else {
-              if (n.bank === 'UPI' || n.bank === 'PAYTM_PB') bank = 'HDFC';
-              label = `user-hdfc-${n.id.slice(-4)}`;
+            if (!bank || bank === 'UPI' || bank === 'AMEX' || bank === 'CHASE' || bank === 'HSBC') {
+              bank = indianBanks[Math.abs(n.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)) % indianBanks.length];
             }
-            return { ...n, bank, label };
+            const label = n.is_flagged ? `mule-${bank.toLowerCase()}-${n.id.slice(-4)}` : `user-${bank.toLowerCase()}-${n.id.slice(-4)}`;
+            return {
+              ...n,
+              bank,
+              label,
+              country: 'India',
+              currency: 'INR',
+              currency_symbol: '₹',
+            };
           });
 
           setGeoData({
@@ -90,22 +90,22 @@ export default function Home() {
         }
       })
       .catch(() => {
-        // Fallback demo fixtures if backend is busy
+        // Fallback Indian domestic fixtures
         const fallbackNodes: GlobeNode[] = [
-          { id: 'ACC_0001', label: 'user-hdfc-3b1c', type: 'INDIVIDUAL', bank: 'HDFC', city: 'Mumbai', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 19.076, lng: 72.8777, is_flagged: false },
-          { id: 'ACC_0002', label: 'user-hdfc-8d42', type: 'INDIVIDUAL', bank: 'HDFC', city: 'Delhi NCR', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 28.6139, lng: 77.209, is_flagged: true },
-          { id: 'ACC_0003', label: 'user-amex-dubai', type: 'MERCHANT', bank: 'AMEX', city: 'Dubai', country: 'United Arab Emirates', currency: 'USD', currency_symbol: '$', lat: 25.2048, lng: 55.2708, is_flagged: true },
-          { id: 'ACC_0004', label: 'user-chase-ny', type: 'INDIVIDUAL', bank: 'CHASE', city: 'New York', country: 'United States', currency: 'USD', currency_symbol: '$', lat: 40.7128, lng: -74.006, is_flagged: true },
-          { id: 'ACC_0005', label: 'user-hsbc-london', type: 'INDIVIDUAL', bank: 'HSBC', city: 'London', country: 'United Kingdom', currency: 'USD', currency_symbol: '$', lat: 51.5074, lng: -0.1278, is_flagged: false },
-          { id: 'ACC_0006', label: 'user-amex-sg', type: 'MERCHANT', bank: 'AMEX', city: 'Singapore', country: 'Singapore', currency: 'USD', currency_symbol: '$', lat: 1.3521, lng: 103.8198, is_flagged: true },
-          { id: 'ACC_0007', label: 'user-hsbc-zurich', type: 'INDIVIDUAL', bank: 'HSBC', city: 'Zurich', country: 'Switzerland', currency: 'USD', currency_symbol: '$', lat: 47.3769, lng: 8.5417, is_flagged: true },
+          { id: 'ACC_0001', label: 'user-hdfc-3b1c', type: 'INDIVIDUAL', bank: 'HDFC', city: 'Mumbai', state: 'Maharashtra', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 19.076, lng: 72.8777, is_flagged: false },
+          { id: 'ACC_0002', label: 'mule-sbi-jamtara', type: 'INDIVIDUAL', bank: 'SBI', city: 'Jamtara', state: 'Jharkhand', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 23.9633, lng: 86.8029, is_flagged: true },
+          { id: 'ACC_0003', label: 'mule-kotak-mewat', type: 'MERCHANT', bank: 'KOTAK', city: 'Mewat/Nuh', state: 'Haryana', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 28.1132, lng: 77.0028, is_flagged: true },
+          { id: 'ACC_0004', label: 'user-icici-delhi', type: 'INDIVIDUAL', bank: 'ICICI', city: 'Delhi NCR', state: 'Delhi', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 28.6139, lng: 77.209, is_flagged: false },
+          { id: 'ACC_0005', label: 'mule-sbi-alwar', type: 'INDIVIDUAL', bank: 'SBI', city: 'Alwar', state: 'Rajasthan', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 27.553, lng: 76.6346, is_flagged: true },
+          { id: 'ACC_0006', label: 'user-axis-blr', type: 'MERCHANT', bank: 'AXIS', city: 'Bengaluru', state: 'Karnataka', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 12.9716, lng: 77.5946, is_flagged: false },
+          { id: 'ACC_0007', label: 'mule-pnb-kolkata', type: 'INDIVIDUAL', bank: 'PNB', city: 'Kolkata', state: 'West Bengal', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 22.5726, lng: 88.3639, is_flagged: true },
         ];
 
         const fallbackLinks: GlobeLink[] = [
-          { tx_id: 'TX_01', source: 'ACC_0001', target: 'ACC_0003', amount: 85000, amount_usd: 1018, currency: 'USD', currency_symbol: '$', from_city: 'Mumbai', to_city: 'Dubai', from_country: 'India', to_country: 'United Arab Emirates', from_lat: 19.076, from_lng: 72.8777, to_lat: 25.2048, to_lng: 55.2708, is_flagged: true },
-          { tx_id: 'TX_02', source: 'ACC_0003', target: 'ACC_0004', amount: 980, amount_usd: 980, currency: 'USD', currency_symbol: '$', from_city: 'Dubai', to_city: 'New York', from_country: 'United Arab Emirates', to_country: 'United States', from_lat: 25.2048, from_lng: 55.2708, to_lat: 40.7128, to_lng: -74.006, is_flagged: true },
-          { tx_id: 'TX_03', source: 'ACC_0002', target: 'ACC_0005', amount: 45000, amount_usd: 538, currency: 'USD', currency_symbol: '$', from_city: 'Delhi NCR', to_city: 'London', from_country: 'India', to_country: 'United Kingdom', from_lat: 28.6139, from_lng: 77.209, to_lat: 51.5074, to_lng: -0.1278, is_flagged: false },
-          { tx_id: 'TX_04', source: 'ACC_0005', target: 'ACC_0007', amount: 520, amount_usd: 520, currency: 'USD', currency_symbol: '$', from_city: 'London', to_city: 'Zurich', from_country: 'United Kingdom', to_country: 'Switzerland', from_lat: 51.5074, from_lng: -0.1278, to_lat: 47.3769, to_lng: 8.5417, is_flagged: true },
+          { tx_id: 'TX_01', source: 'ACC_0001', target: 'ACC_0002', amount: 85000, currency: 'INR', currency_symbol: '₹', from_city: 'Mumbai', to_city: 'Jamtara', from_country: 'India', to_country: 'India', from_lat: 19.076, from_lng: 72.8777, to_lat: 23.9633, to_lng: 86.8029, is_flagged: true, ring_id: 'R1_COLLECT_FAN_IN' },
+          { tx_id: 'TX_02', source: 'ACC_0004', target: 'ACC_0003', amount: 120000, currency: 'INR', currency_symbol: '₹', from_city: 'Delhi NCR', to_city: 'Mewat/Nuh', from_country: 'India', to_country: 'India', from_lat: 28.6139, from_lng: 77.209, to_lat: 28.1132, to_lng: 77.0028, is_flagged: true, ring_id: 'R3_DEVICE_CONCURRENCY' },
+          { tx_id: 'TX_03', source: 'ACC_0006', target: 'ACC_0005', amount: 48000, currency: 'INR', currency_symbol: '₹', from_city: 'Bengaluru', to_city: 'Alwar', from_country: 'India', to_country: 'India', from_lat: 12.9716, from_lng: 77.5946, to_lat: 27.553, to_lng: 76.6346, is_flagged: true, ring_id: 'R2_RAPID_DRAIN' },
+          { tx_id: 'TX_04', source: 'ACC_0007', target: 'ACC_0002', amount: 65000, currency: 'INR', currency_symbol: '₹', from_city: 'Kolkata', to_city: 'Jamtara', from_country: 'India', to_country: 'India', from_lat: 22.5726, from_lng: 88.3639, to_lat: 23.9633, to_lng: 86.8029, is_flagged: true, ring_id: 'R1_COLLECT_FAN_IN' },
         ];
 
         setGeoData({
@@ -117,15 +117,15 @@ export default function Home() {
               entity_id: 'DEV_SYNDICATE_01',
               from_city: 'Mumbai',
               from_country: 'India',
-              to_city: 'New York',
-              to_country: 'United States',
+              to_city: 'Jamtara',
+              to_country: 'India',
               from_lat: 19.076,
               from_lng: 72.8777,
-              to_lat: 40.7128,
-              to_lng: -74.006,
-              distance_km: 12540.8,
-              velocity_kmh: 88518,
-              explanation: 'Device transacted from Mumbai then New York in 8.5 min (88,518 km/h). Proof of offshore VPN / account takeover.',
+              to_lat: 23.9633,
+              to_lng: 86.8029,
+              distance_km: 1582.4,
+              velocity_kmh: 15824,
+              explanation: 'Simultaneous UPI authorization between Mumbai and Jamtara (1,582 km in 6 min). Account takeover.',
             },
           ],
           syndicate_hotspots: [],
@@ -133,19 +133,20 @@ export default function Home() {
       });
   }, []);
 
-  // Cycle the live transaction ticker every 3.5 seconds
+  // Cycle the live transaction ticker every 3 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setTickerIndex((prev) => prev + 1);
-    }, 3500);
+    }, 3000);
     return () => clearInterval(timer);
   }, []);
 
   const activeTickers = [
-    { source: 'user-hdfc-3b1c [Mumbai 🇮🇳]', target: 'user-amex-dubai [Dubai 🇦🇪]', amt: '₹85,000 ➔ $1,018', status: 'CRITICAL_CORRIDOR_FLAGGED', isAlert: true },
-    { source: 'user-hdfc-8d42 [Delhi 🇮🇳]', target: 'user-chase-ny [New York 🇺🇸]', amt: '$1,250.00', status: 'IMPOSSIBLE_VELOCITY (88,518 km/h)', isAlert: true },
-    { source: 'user-hdfc-c07e [Bengaluru 🇮🇳]', target: 'user-hsbc-london [London 🇬🇧]', amt: '₹140,000', status: 'VERIFIED_CORRESPONDENT_CLEARING', isAlert: false },
-    { source: 'user-amex-dubai [Dubai 🇦🇪]', target: 'user-hsbc-zurich [Zurich 🇨🇭]', amt: '$42,500.00', status: 'HAWALA_DRAIN_INTERCEPTED', isAlert: true },
+    { source: 'user-hdfc-3b1c [Mumbai]', target: 'mule-sbi-jamtara [Jamtara]', amt: '₹85,000', status: 'COLLECT_FAN_IN_FLAGGED', isAlert: true },
+    { source: 'user-icici-8d42 [Delhi]', target: 'mule-kotak-mewat [Mewat]', amt: '₹1,20,000', status: 'SHARED_DEVICE_BURST', isAlert: true },
+    { source: 'user-axis-c07e [Bengaluru]', target: 'mule-sbi-alwar [Alwar]', amt: '₹48,000', status: 'RAPID_DRAIN_INTERCEPTED', isAlert: true },
+    { source: 'user-pnb-kolkata [Kolkata]', target: 'mule-sbi-deoghar [Deoghar]', amt: '₹65,000', status: 'OTP_TROJAN_FORWARD', isAlert: true },
+    { source: 'user-kotak-pune [Pune]', target: 'user-hdfc-mum [Mumbai]', amt: '₹14,500', status: 'VERIFIED_DOMESTIC_P2P', isAlert: false },
   ];
   const currentTicker = activeTickers[tickerIndex % activeTickers.length];
 
@@ -157,13 +158,13 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-green-400 animate-ping" />
             <h1 className="text-sm font-black tracking-widest text-white uppercase flex items-center gap-2">
-              <span className="text-green-400">AEGIS</span> GLOBAL TELEMETRY
+              <span className="text-green-400">AEGIS</span> INDIA UPI SURVEILLANCE
             </h1>
           </div>
           <div className="hidden lg:flex items-center gap-1.5 border-l border-green-500/30 pl-3 text-[10px]">
             <span className="px-1.5 py-0.5 rounded bg-black text-white border border-slate-700">⬛ VOID</span>
-            <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-500 font-bold">🟥 FLAGGED</span>
-            <span className="px-1.5 py-0.5 rounded bg-green-950 text-green-400 border border-green-500 font-bold">🟩 VERIFIED</span>
+            <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-500 font-bold">🟥 FLAGGED MULE</span>
+            <span className="px-1.5 py-0.5 rounded bg-green-950 text-green-400 border border-green-500 font-bold">🟩 VERIFIED UPI</span>
             <span className="px-1.5 py-0.5 rounded bg-slate-900 text-white border border-white font-bold">⬜ BANK RAIL</span>
           </div>
         </div>
@@ -188,7 +189,7 @@ export default function Home() {
                 : 'text-green-400 hover:bg-green-950/60'
             }`}
           >
-            🗺️ CARTO BASEMAP
+            🗺️ CARTO INDIA MAP
           </button>
           <button
             onClick={() => setViewMode('split-hud')}
@@ -235,26 +236,44 @@ export default function Home() {
 
       {/* Main Interactive Stage */}
       <main className="relative flex-1 w-full h-[calc(100vh-56px-40px)] bg-black overflow-hidden">
-        {/* VIEW 1: 3D CYBER GLOBE */}
+        {/* VIEW 1: 3D CYBER GLOBE (Side-by-side with Live Rupee Transaction Feed & Pattern Panel) */}
         {viewMode === '3d-globe' && (
-          <div className="relative w-full h-full">
-            <CyberGlobe3D
-              nodes={geoData.nodes}
-              links={geoData.links}
-              onSelectNode={(node) => {
-                setSelectedNode(node);
-                setSelectedLink(null);
-              }}
-              onSelectLink={(link) => {
-                setSelectedLink(link);
-                setSelectedNode(null);
-              }}
-            />
-            <PipelineSequenceController />
+          <div className="flex flex-col lg:flex-row w-full h-full divide-y lg:divide-y-0 lg:divide-x divide-green-500/40">
+            {/* Left Stage: 3D Cyber Globe (Zooming into India) */}
+            <div className="relative flex-1 h-full min-h-[400px]">
+              <CyberGlobe3D
+                nodes={geoData.nodes}
+                links={geoData.links}
+                onSelectNode={(node) => {
+                  setSelectedNode(node);
+                  setSelectedLink(null);
+                }}
+                onSelectLink={(link) => {
+                  setSelectedLink(link);
+                  setSelectedNode(null);
+                }}
+              />
+              <PipelineSequenceController />
+            </div>
+
+            {/* Right Stage: Side-by-Side Live Rupee Transaction Feed & Pattern Panel */}
+            <div className="w-full lg:w-[420px] xl:w-[460px] h-full shrink-0">
+              <LiveRupeeTransactionFeed
+                links={geoData.links}
+                nodes={geoData.nodes}
+                onSelectLink={(link) => {
+                  setSelectedLink(link);
+                  setSelectedNode(null);
+                }}
+                onSelectHotspot={(city) => {
+                  setViewMode('carto-map');
+                }}
+              />
+            </div>
           </div>
         )}
 
-        {/* VIEW 2: CARTO WORLD MAP */}
+        {/* VIEW 2: CARTO INDIA MAP (Bounded strictly to India with City & State Pattern Search Portal) */}
         {viewMode === 'carto-map' && (
           <div className="relative w-full h-full">
             <CartoWorldMap
@@ -334,7 +353,7 @@ export default function Home() {
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="flex items-center gap-1.5 shrink-0 text-green-400 font-bold">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span>LIVE CORRIDOR STREAM:</span>
+            <span>LIVE UPI CORRIDOR:</span>
           </div>
 
           <div className="flex items-center gap-2 truncate text-xs">
@@ -354,6 +373,9 @@ export default function Home() {
         <div className="hidden sm:flex items-center gap-4 shrink-0 text-[11px] text-slate-400">
           <div>
             DATABASE: <span className="text-white font-bold">{geoData.nodes.length} ACCOUNTS · {geoData.links.length} CORRIDORS</span>
+          </div>
+          <div>
+            CURRENCY: <span className="text-green-400 font-bold">₹ INR ONLY</span>
           </div>
           <div>
             CARTO API: <span className="text-green-400 font-bold">AUTHENTICATED</span>

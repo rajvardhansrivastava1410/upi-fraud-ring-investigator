@@ -51,7 +51,7 @@ export default function ConnectionInspectorDrawer({ selectedNode, selectedLink, 
             <div>
               <div className="text-[10px] text-slate-400">TRANSACTION PIPELINE</div>
               <div className="text-base font-bold text-green-400">
-                {selectedLink.currency === 'USD' ? `$${(selectedLink.amount_usd || selectedLink.amount).toLocaleString()}` : `₹${selectedLink.amount.toLocaleString()}`}
+                ₹{selectedLink.amount.toLocaleString('en-IN')}
               </div>
             </div>
             <div className={`px-2 py-1 rounded text-[10px] font-bold ${selectedLink.is_flagged ? 'bg-red-950 text-red-400 border border-red-500' : 'bg-green-950 text-green-400 border border-green-500'}`}>
@@ -62,25 +62,25 @@ export default function ConnectionInspectorDrawer({ selectedNode, selectedLink, 
           {/* Connection Chain: User ➔ Bank ➔ Target ➔ Bank */}
           <div className="p-3 rounded bg-black border border-slate-800 space-y-2">
             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              CORRIDOR HOP LINKAGE
+              DOMESTIC UPI CORRIDOR HOP
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-base">{COUNTRY_FLAGS[selectedLink.from_country || 'India'] || '🇮🇳'}</span>
+              <span className="text-base">🇮🇳</span>
               <div className="flex-1 truncate">
                 <div className="font-bold text-white truncate">{selectedLink.source}</div>
-                <div className="text-[10px] text-slate-400">{selectedLink.from_city} · <strong className="text-green-400">HDFC / Domestic</strong></div>
+                <div className="text-[10px] text-slate-400">{selectedLink.from_city} · <strong className="text-green-400">Domestic Account</strong></div>
               </div>
             </div>
 
-            <div className="flex justify-center text-green-400 font-bold text-sm my-1">
-              ▼ [ RAPID SETTLEMENT RAIL ] ▼
+            <div className="flex justify-center text-green-400 font-bold text-xs my-1">
+              ▼ [ RAPID UPI SETTLEMENT RAIL (₹) ] ▼
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-base">{COUNTRY_FLAGS[selectedLink.to_country || 'India'] || '🌐'}</span>
+              <span className="text-base">🇮🇳</span>
               <div className="flex-1 truncate">
                 <div className="font-bold text-white truncate">{selectedLink.target}</div>
-                <div className="text-[10px] text-slate-400">{selectedLink.to_city} · <strong className="text-amber-400">AMEX / Offshore</strong></div>
+                <div className="text-[10px] text-slate-400">{selectedLink.to_city} · <strong className={selectedLink.is_flagged ? 'text-red-400' : 'text-green-400'}>{selectedLink.is_flagged ? 'Flagged Mule' : 'Verified Merchant'}</strong></div>
               </div>
             </div>
           </div>
@@ -91,18 +91,18 @@ export default function ConnectionInspectorDrawer({ selectedNode, selectedLink, 
               <span className="font-bold">{selectedLink.tx_id}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Cross-Border Settlement:</span>
-              <span className="font-bold text-green-400">{selectedLink.currency} Rail</span>
+              <span className="text-slate-400">Settlement Rail:</span>
+              <span className="font-bold text-green-400">₹ INR (UPI Instant)</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Ring Attribution:</span>
+              <span className="text-slate-400">Attributed Pattern:</span>
               <span className="font-bold text-red-400">{selectedLink.ring_id || 'R1_COLLECT_FAN_IN'}</span>
             </div>
           </div>
 
           <div className="flex gap-2 pt-1">
             <button
-              onClick={() => alert(`Freezing Corridor ${selectedLink.tx_id} across HDFC and AMEX rails.`)}
+              onClick={() => alert(`Freezing UPI Corridor ${selectedLink.tx_id} across domestic NPCI/bank rails.`)}
               className="flex-1 py-1.5 bg-red-950 border border-red-500 text-red-300 hover:bg-red-900 rounded font-bold text-center transition-colors"
             >
               ⛔ INTERCEPT CORRIDOR
