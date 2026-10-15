@@ -1,0 +1,38 @@
+{
+  "alert_id": "A-014",
+  "hypotheses": [
+    {
+      "id": "shop_collection",
+      "name": "Shop or event collection account",
+      "summary": "An account collecting from several customers and settling onward can look like fan-in followed by fan-out.",
+      "check": "Established merchant history and consistent payout counterparties before this window.",
+      "points": 0.12
+    },
+    {
+      "id": "group_pool",
+      "name": "Group or wedding pool",
+      "summary": "A one-off pooled collection by an organiser, paid out soon after, fits the same timing.",
+      "check": "Payers overlap an existing contact group and the pool is a one-off with a known organiser.",
+      "points": 0.10
+    },
+    {
+      "id": "refund_burst",
+      "name": "Refund burst",
+      "summary": "Rapid outbound transfers to prior counterparties can be refunds rather than onward movement.",
+      "check": "Outbound transfers match earlier purchases from the same counterparties.",
+      "points": 0.08
+    }
+  ],
+  "what_ifs": [
+    {
+      "id": "wi_device",
+      "text": "If the dropped device ID linked the collecting account to a device used by two of the payers",
+      "points": 0.09
+    },
+    {
+      "id": "wi_complaint",
+      "text": "If the delayed complaint about the onward account is confirmed as relating to a collect request",
+      "points": 0.06
+    }
+  ]
+}

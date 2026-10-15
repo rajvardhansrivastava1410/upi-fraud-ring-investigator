@@ -1,36 +1,209 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# UPI Fraud-Ring Graph Investigator — Frontend
 
-## Getting Started
+> **⚠️ Synthetic data only. This application never connects to live UPI rails and processes no personal financial data of any kind. All transactions, accounts, device hashes, and complaint records are procedurally generated solely for research and hackathon demonstration purposes.**
 
-First, run the development server:
+A Next.js analyst workbench for investigating coordinated payment-network behaviour. Analysts review a prioritised alert queue, explore the transaction graph behind each alert, and record decisions — all in a single dark-theme, accessibility-first UI.
+
+---
+
+## Table of Contents
+
+1. [Quick Start](#quick-start)
+2. [Environment Variables](#environment-variables)
+3. [Project Structure](#project-structure)
+4. [Architecture Overview](#architecture-overview)
+5. [Key Differentiators](#key-differentiators)
+6. [Hackathon Language Policy](#hackathon-language-policy)
+7. [Baseline Comparison](#baseline-comparison)
+8. [Evaluation & Benchmarks](#evaluation--benchmarks)
+9. [Accessibility & Motion](#accessibility--motion)
+10. [Stack](#stack)
+
+---
+
+## Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Install dependencies (recharts is included)
+npm install
+
+# 2. Run in demo mode — no backend required
+NEXT_PUBLIC_DEMO=1 npm run dev
+
+# 3. Open the app
+open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **Demo mode** (`NEXT_PUBLIC_DEMO=1`) serves all data from local JSON fixtures under `fixtures/`. No network calls leave the machine.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+To run against the real backend:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Start the backend separately (see /backend/README.md)
+npm run dev   # omit NEXT_PUBLIC_DEMO
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Default | Description |
+|---|---|---|
+| `NEXT_PUBLIC_DEMO` | `0` | Set to `1` to use local fixture data instead of hitting the backend API. |
+| `NEXT_PUBLIC_API_URL` | _(empty)_ | Override the backend base URL (e.g. `http://localhost:8000`). |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+frontend/
+├── app/
+│   ├── api/mock/          # Next.js Route Handlers — demo fixture endpoints
+│   │   └── alerts/
+│   │       ├── route.ts          # GET /api/mock/alerts?k=N
+│   │       └── [id]/
+│   │           ├── graph/route.ts      # GET /api/mock/alerts/:id/graph
+│   │           └── hypotheses/route.ts # GET /api/mock/alerts/:id/hypotheses
+│   ├── evaluation/        # /evaluation page — Recharts benchmarks
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx           # Main investigator workbench
+├── components/
+│   ├── EmptyState.tsx      # [NEW] Inline-SVG empty states (3 variants)
+│   ├── LoadingState.tsx    # [NEW] Spinner / skeleton / graph-placeholder
+│   ├── GraphPane.tsx       # Graph explorer with edge filters
+│   ├── GraphView.tsx       # Cytoscape canvas wrapper
+│   ├── QueuePane.tsx       # Alert queue with baseline comparison toggle
+│   ├── EvidencePane.tsx    # Explanation panel (reasons + discounts)
+│   ├── DecisionTab.tsx     # Confirm / Dismiss / Needs-info workflow
+│   ├── CounterfactualTab.tsx # Counterfactual "what-if" hypotheses
+│   └── TimeSlider.tsx      # Temporal replay slider
+├── fixtures/
+│   ├── alerts.json
+│   ├── graph-A-014.json
+│   ├── graph-A-051.json
+│   ├── graph-fallback.json # Generic fallback for unrecognised alert IDs
+│   ├── hypotheses-A-014.json
+│   └── hypotheses-A-051.json
+├── lib/
+│   ├── api.ts             # SWR hooks: useAlerts, useAlertGraph
+│   ├── format.ts          # Edge/time formatters
+│   ├── store.ts           # Zustand store (decisions, selected IDs)
+│   └── types.ts           # Shared TypeScript contract
+└── tailwind.config.js
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Browser (Next.js App Router)           │
+│                                                         │
+│  QueuePane ──────► Zustand store ◄──── GraphPane        │
+│     │               selectedAlertId       │             │
+│     │               selectedEdgeId        │             │
+│     ▼                                     ▼             │
+│  useAlerts()                        useAlertGraph()     │
+│  (SWR hook)                         (SWR hook)          │
+│     │                                     │             │
+│     └──────────────┬────────────────────┘             │
+│                    ▼                                    │
+│            /api/mock/*  (demo)                         │
+│         or /api/*       (live backend)                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+State is kept entirely in-browser via **Zustand**. Decisions are persisted to `localStorage` (key: `upi-decisions-v1`) so they survive page refreshes during demos.
+
+---
+
+## Key Differentiators
+
+### 1. Time Slider — Temporal Graph Replay
+
+The [`TimeSlider`](components/TimeSlider.tsx) component lets analysts scrub through the transaction timeline. As the slider advances, edges with `event_time` beyond the selected timestamp are hidden, revealing how the coordinated behaviour pattern built up over time. This is unique to graph-native tooling — traditional tabular rule engines have no concept of temporal topology.
+
+### 2. Counterfactual Hypotheses
+
+The [`CounterfactualTab`](components/CounterfactualTab.tsx) presents hypothesis cards generated by the backend: *"If we remove the shared device link, the score drops from 0.86 → 0.52."* This gives analysts an actionable explanation, not just a score — critical for accountability and for deciding whether to request additional data.
+
+### 3. Confidence Intervals Under Missing Data
+
+Every alert carries `confidence_low` / `confidence_high` bounds. When edge data is incomplete (e.g. `device_id` missing on some transfers), the bounds widen automatically. The score bar in the queue visualises this uncertainty band, making it obvious when an analyst should request more information before confirming.
+
+### 4. Baseline Comparison Toggle
+
+Click **▼ Compare** in the queue header to see a side-by-side table comparing B1 (Shared Device heuristic), B2 (Velocity rule), and B3 (Isolation Forest anomaly detector) against the Graph Engine's score for every alert. This demonstrates where graph-topology reasoning adds value over simpler methods.
+
+---
+
+## Hackathon Language Policy
+
+This is a strict project-wide requirement. All contributors and AI tools **must** follow these rules:
+
+| ❌ Forbidden term | ✅ Required alternative |
+|---|---|
+| "Fraud detected" / "fraudulent" | "Coordinated behaviour" |
+| "Accept" (a decision) | "Confirm" |
+| "Reject" (a decision) | "Dismiss" |
+| Red (`red-*` Tailwind colours) | Amber (`amber-500` / `amber-400`) |
+| "Criminal" / "fraudster" | "Subject account" / "ring member" |
+
+**Rationale:** These patterns are high-risk and often benign (shared family phones, cyber cafes, wedding pools, merchant supplier chains). Language that presupposes guilt violates analyst objectivity and creates liability. The system surfaces *signals* for human review — it does not render verdicts.
+
+---
+
+## Baseline Comparison
+
+Three baselines are tracked alongside the Graph Engine:
+
+| ID | Name | Method |
+|---|---|---|
+| B1 | Shared Device | Rule: flag any account sharing a device fingerprint with ≥ 2 others |
+| B2 | Velocity | Rule: flag accounts with > N transactions in a rolling T-minute window |
+| B3 | Isolation Forest | Sklearn `IsolationForest` on per-account feature vectors |
+
+In the queue, toggle **▼ Compare** to expand a comparison table per alert showing each baseline's flag status and synthetic score vs the Graph Engine's composite score.
+
+The [`/evaluation`](http://localhost:3000/evaluation) page shows aggregate Precision@K, Recall@K, stability under late-arriving complaints (Jaccard similarity), and False Positive Rates on labelled benign typologies.
+
+---
+
+## Evaluation & Benchmarks
+
+Navigate to [`/evaluation`](http://localhost:3000/evaluation) to see:
+
+- **Precision / Recall at Budget (K)** — fixed analyst budget of K=10, 25, 50 alerts
+- **Stability vs. Complaint Lag** — Top-K Jaccard similarity as complaint records are delayed by 0h → 48h
+- **Benign Typology False Positive Rates** — Family Shared Phone, Cyber Cafe, Wedding Pool, Shop Suppliers
+
+All charts use **Recharts** with a dark `slate-950` theme and amber accents.
+
+---
+
+## Accessibility & Motion
+
+- All interactive elements have `focus-visible:ring-2 focus-visible:ring-amber-400` outlines.
+- `aria-pressed`, `aria-live`, `aria-label`, and `role="status"` are used throughout.
+- All CSS animations in `LoadingState` are wrapped in `motion-safe:animate-*`, so they are **automatically disabled** for users with `prefers-reduced-motion: reduce` set in their OS accessibility preferences.
+- Colour is never used as the sole means of conveying information.
+
+---
+
+## Stack
+
+| Layer | Choice | Version |
+|---|---|---|
+| Framework | Next.js (App Router) | 16.x |
+| Styling | Tailwind CSS v3 | ^3.4 |
+| State | Zustand | ^5.0 |
+| Data fetching | SWR | ^2.5 |
+| Graph rendering | Cytoscape.js + react-cytoscapejs | ^3.34 / ^2.0 |
+| Charts | Recharts | ^3.10 |
+| Icons | lucide-react | ^1.57 |
+| Language | TypeScript | ^5 |
+
+> Tailwind v3 is intentionally pinned. The project does **not** use Tailwind v4 or the `@tailwindcss/vite` / `@tailwindcss/turbopack` v4 plugins in production CSS processing.

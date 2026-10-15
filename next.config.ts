@@ -1,19 +1,12 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+
+const DEMO = process.env.NEXT_PUBLIC_DEMO === '1';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  experimental: {
-    agentFeedback: true,
-  },
-  cacheComponents: true,
-  partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
+  async rewrites() {
+    if (DEMO) return [];
+    // Route handlers (e.g. /api/mock/*) are matched before these rewrites.
+    return [{ source: '/api/:path*', destination: 'http://localhost:8000/api/:path*' }];
   },
 };
 
