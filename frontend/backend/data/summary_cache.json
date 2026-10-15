@@ -1,0 +1,3 @@
+{
+  "A-0044": "Alert A-0044 (DEVICE_SYNDICATE_BURST) triggered with 98% risk confidence. Evidence indicates: ACC_0090 routed \u20b961,709.55 through device DEV_SYNDICATE_ALPHA to ACC_0099; ACC_0091 routed \u20b957,241.33 through device DEV_SYNDICATE_ALPHA to ACC_0099. The pattern satisfies temporal motif criteria and rules out benign household sharing."
+}
