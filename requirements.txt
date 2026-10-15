@@ -1,0 +1,6 @@
+# Initial data and graph-development dependencies.
+# Pin versions after validating the project environment and recording a working setup.
+numpy
+pandas
+networkx
+python-dotenv
