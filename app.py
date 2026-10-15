@@ -1285,11 +1285,21 @@ class UPIFraudGraphEngine:
                     node_alert_id = a["id"]
                     break
                     
+            is_offshore = geo.get("country", "India") != "India" or geo.get("currency") == "USD"
+            if is_offshore:
+                bank_name = "AMEX" if geo.get("city") in ["Dubai", "George Town", "Singapore", "Panama"] else "CHASE" if geo.get("city") == "New York" else "HSBC"
+                node_label = f"user-amex-{acc_id[-4:]}" if bank_name == "AMEX" else f"user-{bank_name.lower()}-{acc_id[-4:]}"
+            else:
+                bank_name = acc.get("bank", "HDFC")
+                if bank_name in ["UPI", None, "PAYTM_PB"]:
+                    bank_name = "HDFC"
+                node_label = f"user-hdfc-{acc_id[-4:]}" if bank_name == "HDFC" else f"user-{bank_name.lower()}-{acc_id[-4:]}"
+
             nodes_out.append({
                 "id": acc_id,
-                "label": acc.get("vpa", acc_id),
+                "label": node_label,
                 "type": acc.get("type", "INDIVIDUAL"),
-                "bank": acc.get("bank", "UPI"),
+                "bank": bank_name,
                 "city": geo.get("city", "Mumbai"),
                 "state": geo.get("state", "Maharashtra"),
                 "country": geo.get("country", "India"),

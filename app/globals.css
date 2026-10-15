@@ -1,3 +1,103 @@
+@import "leaflet/dist/leaflet.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-void: #000000;
+    --neon-green: #00ff66;
+    --neon-green-glow: rgba(0, 255, 102, 0.45);
+    --alert-red: #ff003f;
+    --alert-red-glow: rgba(255, 0, 63, 0.55);
+    --pure-white: #ffffff;
+    --cyber-slate: #050a0e;
+    --cyber-border: #13271d;
+  }
+
+  body {
+    background-color: #000000;
+    color: #ffffff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Cyber Glow Utilities */
+.text-glow-green {
+  text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+}
+
+.text-glow-red {
+  text-shadow: 0 0 10px rgba(255, 0, 63, 0.8), 0 0 20px rgba(255, 0, 63, 0.4);
+}
+
+.box-glow-green {
+  box-shadow: 0 0 15px rgba(0, 255, 102, 0.25), inset 0 0 15px rgba(0, 255, 102, 0.1);
+  border-color: #00ff66;
+}
+
+.box-glow-red {
+  box-shadow: 0 0 15px rgba(255, 0, 63, 0.35), inset 0 0 15px rgba(255, 0, 63, 0.15);
+  border-color: #ff003f;
+}
+
+/* Radar Scanline Animation */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+}
+
+/* Cyber Pulse Animation */
+@keyframes cyberPulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #00ff66); }
+  50% { opacity: 0.6; filter: drop-shadow(0 0 2px #00ff66); }
+}
+
+.animate-cyber-pulse {
+  animation: cyberPulse 2s ease-in-out infinite;
+}
+
+@keyframes redPulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 10px #ff003f); }
+  50% { opacity: 0.5; filter: drop-shadow(0 0 2px #ff003f); }
+}
+
+.animate-red-pulse {
+  animation: redPulse 1.5s ease-in-out infinite;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #00ff66;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #33ff88;
+}
+
+/* Leaflet dark customizer */
+.leaflet-container {
+  background: #000000 !important;
+  font-family: inherit !important;
+}
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: #03080c !important;
+  color: #ffffff !important;
+  border: 1px solid #00ff66 !important;
+  box-shadow: 0 0 20px rgba(0, 255, 102, 0.3) !important;
+  border-radius: 6px !important;
+}
