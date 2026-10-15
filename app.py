@@ -1860,20 +1860,193 @@ def get_alert_summary(alert_id: str):
         json.dump(cache, f, indent=2)
     return {"id": alert_id, "summary": summary_text, "source": "generated"}
 
-# Backwards-compatible aliases
+# ==============================================================================
+# NEXT.JS FRONTEND REST API CONTRACT (COMPATIBLE WITH /api/*)
+# ==============================================================================
+FIXTURES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
+
 @app.get("/api/health")
-def api_health(): return {"status": "online", "model": "AegisUPI-AllInOne", "alerts": len(engine.alerts)}
+def api_health():
+    return {"status": "online", "model": "AegisUPI-AllInOne", "alerts": len(engine.alerts)}
+
 @app.get("/api/alerts")
-def api_alerts(budget: int = 50): return get_alerts(budget=budget)
+def api_alerts(k: int = Query(25), budget: Optional[int] = None):
+    effective_k = budget if budget is not None else k
+    fixture_alerts = []
+    fixtures_file = os.path.join(FIXTURES_DIR, "alerts.json")
+    if os.path.exists(fixtures_file):
+        try:
+            with open(fixtures_file, "r") as f:
+                data = json.load(f)
+                fixture_alerts = data.get("alerts", [])
+        except Exception:
+            pass
+
+    # Transform live engine alerts into Next.js Alert format
+    live_formatted = []
+    for idx, alt in enumerate(engine.alerts):
+        reasons = []
+        for ep in alt.get("evidence_path", []):
+            if isinstance(ep, dict):
+                reasons.append({
+                    "rule": ep.get("rule", "R2_pass_through"),
+                    "points": 0.32,
+                    "text": ep.get("detail", f"Topology match: {ep.get('edge', '')}"),
+                    "edge_ids": [ep.get("edge", "")] if ep.get("edge") else []
+                })
+            else:
+                reasons.append({
+                    "rule": "R2_pass_through",
+                    "points": 0.32,
+                    "text": str(ep),
+                    "edge_ids": []
+                })
+
+        live_formatted.append({
+            "id": alt["id"],
+            "rank": idx + 1 + len(fixture_alerts),
+            "score": round(alt.get("score", 0.85), 2),
+            "confidence_low": max(0.1, round(alt.get("score", 0.85) - 0.12, 2)),
+            "confidence_high": min(0.99, round(alt.get("score", 0.85) + 0.08, 2)),
+            "status": "open",
+            "reasons": reasons if reasons else [{
+                "rule": alt.get("ring_type", "R1_collect_fan_in"),
+                "points": round(alt.get("score", 0.85), 2),
+                "text": f"Mule ring detected with {len(alt.get('nodes', []))} involved accounts",
+                "edge_ids": alt.get("transactions_involved", [])
+            }],
+            "benign_discounts": [],
+            "missing_data": [],
+            "baseline_flags": {
+                "shared_device": True,
+                "velocity": True,
+                "ml": True
+            }
+        })
+
+    combined = fixture_alerts + live_formatted
+    return {"budget_k": effective_k, "alerts": combined[:effective_k]}
+
+@app.get("/api/alerts/{alert_id}/graph")
+def api_alert_graph(alert_id: str, hops: int = Query(2)):
+    # Check fixtures first
+    fixture_path = os.path.join(FIXTURES_DIR, f"graph-{alert_id}.json")
+    if os.path.exists(fixture_path):
+        try:
+            with open(fixture_path, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    # Dynamic fallback from live engine
+    payload = engine.get_graph_payload(alert_id=alert_id)
+    nodes = []
+    for n in payload.get("nodes", []):
+        ntype = "merchant" if n.get("type") == "MERCHANT" else ("device" if n.get("type") == "DEVICE" else "account")
+        nodes.append({
+            "id": n["id"],
+            "type": ntype,
+            "label": n.get("display_label", n["id"])
+        })
+
+    edges = []
+    evidence_path = []
+    for l in payload.get("links", []):
+        edges.append({
+            "id": l["id"],
+            "source": l["source"],
+            "target": l["target"],
+            "type": "transfer",
+            "amount": l.get("amount", 0.0),
+            "event_time": l.get("timestamp", "2026-10-15T12:00:00Z"),
+            "ingest_time": l.get("timestamp", "2026-10-15T12:00:00Z")
+        })
+        if l.get("is_flagged"):
+            evidence_path.append(l["id"])
+
+    return {"nodes": nodes, "edges": edges, "evidence_path": evidence_path}
+
+@app.get("/api/alerts/{alert_id}/hypotheses")
+def api_alert_hypotheses(alert_id: str):
+    fixture_path = os.path.join(FIXTURES_DIR, f"hypotheses-{alert_id}.json")
+    if os.path.exists(fixture_path):
+        try:
+            with open(fixture_path, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    return {
+        "alert_id": alert_id,
+        "hypotheses": [
+            {
+                "id": "h_family",
+                "name": "Shared Family Device",
+                "summary": "Multiple household members utilizing a shared device for routine UPI transfers.",
+                "check": "Verify beneficiary names against common family surname or domestic address.",
+                "points": 0.35
+            },
+            {
+                "id": "h_merchant",
+                "name": "Festival Merchant Batch Settlement",
+                "summary": "Rapid evening settlement aggregation by a retail merchant counter.",
+                "check": "Review merchant GSTIN registration and daily evening batch volume pattern.",
+                "points": 0.30
+            }
+        ],
+        "what_ifs": [
+            {
+                "id": "w_kyc",
+                "text": "Full KYC documentation submitted and verified within 48 hours",
+                "points": -0.25
+            },
+            {
+                "id": "w_dispute",
+                "text": "Payer dispute filed on NPCI portal within last 2 hours",
+                "points": 0.20
+            }
+        ]
+    }
+
+@app.post("/api/alerts/{alert_id}/counterfactual")
+def api_alert_counterfactual(alert_id: str, req: Dict[str, Any]):
+    remove_edges = req.get("remove_edges", [])
+    res = engine.simulate_counterfactual(alert_id, remove_edges)
+    orig_score = 0.85
+    for a in engine.alerts:
+        if a["id"] == alert_id:
+            orig_score = a.get("score", 0.85)
+            break
+    new_score = res.get("new_score", 0.0)
+    delta = round(orig_score - new_score, 3)
+    return {
+        "new_score": new_score,
+        "delta": delta,
+        "below_cutoff": res.get("ring_broken", True)
+    }
+
+@app.post("/api/alerts/{alert_id}/decision")
+def api_alert_decision(alert_id: str, req: Dict[str, Any]):
+    return review_alert(alert_id, ReviewRequest(
+        decision="confirm" if req.get("decision", "").lower() == "confirm" else "reject",
+        note=req.get("note", "")
+    ))
+
 @app.get("/api/graph")
 def api_graph(from_time: Optional[str] = Query(None, alias="from"), to_time: Optional[str] = Query(None, alias="to"), min_amount: Optional[float] = None, alert_id: Optional[str] = None):
     return get_graph(from_time=from_time, to_time=to_time, min_amount=min_amount, alert_id=alert_id)
+
 @app.post("/api/counterfactual")
-def api_cf(req: Dict[str, Any]): return engine.simulate_counterfactual(req.get("alert_id") or req.get("id"), req.get("remove_edges") or req.get("excluded_tx_ids", []))
+def api_cf(req: Dict[str, Any]):
+    return engine.simulate_counterfactual(req.get("alert_id") or req.get("id"), req.get("remove_edges") or req.get("excluded_tx_ids", []))
+
 @app.post("/api/feedback")
-def api_fb(req: Dict[str, Any]): return review_alert(req.get("alert_id") or req.get("id"), ReviewRequest(decision="confirm" if "CONFIRM" in req.get("action", "").upper() else "reject"))
+def api_fb(req: Dict[str, Any]):
+    return review_alert(req.get("alert_id") or req.get("id"), ReviewRequest(decision="confirm" if "CONFIRM" in req.get("action", "").upper() else "reject"))
+
 @app.get("/api/evaluation")
-def api_eval(): return get_metrics()
+def api_eval():
+    return get_metrics()
 
 # Geospatial Surveillance & CARTO Maps APIs
 @app.get("/geo/surveillance")

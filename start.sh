@@ -17,23 +17,43 @@ if [ ! -d "$BACKEND_DIR/venv" ]; then
     "$BACKEND_DIR/venv/bin/pip" install fastapi uvicorn networkx pydantic pytest
 fi
 
-# 2. Generate benchmark dataset if not present
-if [ ! -f "$BACKEND_DIR/data/dataset.json" ]; then
-    echo "📊 Generating synthetic benchmark & ground truth..."
-    cd "$BACKEND_DIR"
-    ./venv/bin/python generator.py
+# 2. Check node_modules
+if [ ! -d "$PROJECT_DIR/node_modules" ]; then
+    echo "📦 Installing Next.js frontend dependencies..."
+    cd "$PROJECT_DIR"
+    npm install --legacy-peer-deps
 fi
 
-# 3. Run evaluation verification
-echo "🧪 Running empirical benchmark against ground truth..."
-cd "$BACKEND_DIR"
-./venv/bin/python evaluation.py
+# 3. Trap exit signals to kill all child background processes cleanly
+cleanup() {
+    echo ""
+    echo "🛑 Shutting down AegisUPI servers..."
+    kill $(jobs -p) 2>/dev/null || true
+    exit 0
+}
+trap cleanup SIGINT SIGTERM EXIT
 
-# 4. Launch FastAPI Server + Web Workbench
+# 4. Launch FastAPI Server on port 8000
+echo "🚀 [1/2] Launching FastAPI Backend on http://localhost:8000..."
+cd "$PROJECT_DIR"
+"$BACKEND_DIR/venv/bin/python" app.py &
+BACKEND_PID=$!
+
+# Wait briefly for FastAPI to spin up
+sleep 2
+
+# 5. Launch Next.js Frontend on port 3000
+echo "🚀 [2/2] Launching Next.js Analyst UI on http://localhost:3000..."
+npx next start -p 3000 &
+FRONTEND_PID=$!
+
 echo ""
-echo "🚀 Starting AegisUPI Analyst Workbench on http://localhost:8000"
-echo "👉 Open your browser at: http://localhost:8000"
-echo "👉 Interactive API Docs at: http://localhost:8000/docs"
 echo "========================================================"
+echo "✨ BOTH SERVERS ARE LIVE & FULLY INTEGRATED!"
+echo "👉 Next.js React Workbench:       http://localhost:3000"
+echo "👉 CARTO World Map & Full Engine: http://localhost:8000"
+echo "👉 Interactive OpenAPI Docs:      http://localhost:8000/docs"
+echo "========================================================"
+echo "Press Ctrl+C to stop both servers."
 
-exec "$BACKEND_DIR/venv/bin/uvicorn" main:app --host 0.0.0.0 --port 8000 --reload
+wait

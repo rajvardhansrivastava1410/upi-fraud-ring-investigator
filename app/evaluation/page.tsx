@@ -95,7 +95,7 @@ export default function EvaluationPage() {
                     </Pie>
                     <PieTooltip
                       contentStyle={TOOLTIP_STYLE}
-                      formatter={(v: number) => [`${v} (${((v / total) * 100).toFixed(1)}%)`, '']}
+                      formatter={(v: any) => [`${v} (${(((Number(v) || 0) / total) * 100).toFixed(1)}%)`, '']}
                     />
                   </PieChart>
                 </ResponsiveContainer>
