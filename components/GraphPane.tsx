@@ -98,7 +98,7 @@ export default function GraphPane() {
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-[350px] flex-1">
         <GraphView graph={filteredGraph} layoutKey={layoutKey} />
         <ul className="absolute right-3 top-2 flex gap-3 rounded bg-slate-900/90 px-2.5 py-1.5 text-[11px] text-slate-300">
           {LEGEND.map((l) => (

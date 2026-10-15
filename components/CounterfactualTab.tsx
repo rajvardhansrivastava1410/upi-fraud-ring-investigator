@@ -24,8 +24,11 @@ export default function CounterfactualTab({ alert }: { alert: Alert }) {
   const [err, setErr] = useState<string | null>(null);
 
   const cutoff = useMemo(() => {
-    if (!queue) return null;
-    return queue.alerts.find((a) => a.rank === queue.budget_k)?.score ?? null;
+    if (!queue || queue.alerts.length === 0) return null;
+    const exact = queue.alerts.find((a) => a.rank === queue.budget_k);
+    if (exact) return exact.score;
+    const sorted = [...queue.alerts].sort((a, b) => b.rank - a.rank);
+    return sorted[0]?.score ?? null;
   }, [queue]);
 
   const req: CounterfactualRequest = useMemo(

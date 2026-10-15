@@ -4,9 +4,9 @@ import { useMemo, useState } from 'react';
 import { useAlertGraph, useAlerts } from '@/lib/api';
 import { describeEdge, fmtDuration, fmtSigned, fmtTime, ruleLabel } from '@/lib/format';
 import { useStore } from '@/lib/store';
-import DecisionTab from '@/components/DecisionTab';
 import type { Alert } from '@/lib/types';
-import CounterfactualTab from './ CounterfactualTab';
+import DecisionTab from '@/components/DecisionTab';
+import CounterfactualTab from '@/components/CounterfactualTab';
 
 type Tab = 'evidence' | 'counterfactual' | 'decision';
 const TABS: { id: Tab; label: string }[] = [

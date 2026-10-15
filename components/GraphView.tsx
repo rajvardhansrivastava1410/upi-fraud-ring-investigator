@@ -185,8 +185,16 @@ export default function GraphView({ graph, layoutKey }: Props) {
     cy.on('mouseout', 'node', () => setTooltip(null));
     cy.on('tap', 'node', () => setTooltip(null));
 
+    const ro = new ResizeObserver(() => {
+      cy.resize();
+    });
+    if (containerRef.current) {
+      ro.observe(containerRef.current);
+    }
+
     cyRef.current = cy;
     return () => {
+      ro.disconnect();
       cy.destroy();
       cyRef.current = null;
       setTooltip(null);

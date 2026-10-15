@@ -141,12 +141,12 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="min-h-0 flex-1 lg:flex-initial" aria-label="Graph explorer">
+        <section className="min-h-0 flex-1 lg:flex-initial h-full overflow-hidden flex flex-col" aria-label="Graph explorer">
           <GraphPane />
         </section>
 
         <section
-          className="min-h-0 border-t border-slate-800 lg:border-t-0 lg:border-l"
+          className="min-h-0 border-t border-slate-800 lg:border-t-0 lg:border-l h-full overflow-hidden flex flex-col"
           aria-label="Evidence panel"
         >
           <EvidencePane />
