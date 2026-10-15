@@ -242,19 +242,19 @@ export default function CyberGlobe3D({
       })
       .catch(() => {});
 
-    // 7. Load Coastlines from /globe-coastlines.json
+    // 7A. Load Subtle World Coastlines Context from /globe-coastlines.json
     fetch('/globe-coastlines.json')
       .then((res) => res.json())
       .then((rings: [number, number][][]) => {
         if (!rings) return;
         rings.forEach((ring) => {
-          const points = ring.map(([lat, lng]) => latLngToVector3(lat, lng, GLOBE_RADIUS + 0.3));
+          const points = ring.map(([lat, lng]) => latLngToVector3(lat, lng, GLOBE_RADIUS + 0.25));
           if (points.length < 3) return;
           const curveGeo = new THREE.BufferGeometry().setFromPoints(points);
           const lineMat = new THREE.LineBasicMaterial({
             color: 0x00ff66,
             transparent: true,
-            opacity: 0.22,
+            opacity: 0.14,
           });
           const line = new THREE.LineLoop(curveGeo, lineMat);
           globeGroup.add(line);
@@ -262,55 +262,229 @@ export default function CyberGlobe3D({
       })
       .catch(() => {});
 
-    // 8. India Target Beacon Reticle (centered over India)
+    // City & Infrastructure objects for hover inspection
+    const cityObjects: {
+      mesh: THREE.Mesh;
+      data: { title: string; subtitle: string; badge: string; isAlert: boolean };
+    }[] = [];
+
+    // 7B. VIVID HIGH-CONTRAST INDIA SOVEREIGN TERRITORIAL MAP & PARTICLES
+    fetch('/india-cyber-map.json')
+      .then((res) => res.json())
+      .then((data: {
+        india_boundary: [number, number][];
+        india_interior_particles: [number, number][];
+        neighbors: { name: string; coordinates: [number, number][][] }[];
+        major_cities: { name: string; lat: number; lng: number; role: string }[];
+      }) => {
+        if (!data) return;
+
+        // 1. Primary High-Luminance Neon Green National Border of India
+        if (data.india_boundary && data.india_boundary.length > 2) {
+          const borderPts = data.india_boundary.map(([lat, lng]) =>
+            latLngToVector3(lat, lng, GLOBE_RADIUS + 0.8)
+          );
+          const borderGeo = new THREE.BufferGeometry().setFromPoints(borderPts);
+          const borderMat = new THREE.LineBasicMaterial({
+            color: 0x00ff66,
+            transparent: true,
+            opacity: 1.0,
+          });
+          const borderLine = new THREE.LineLoop(borderGeo, borderMat);
+          globeGroup.add(borderLine);
+
+          // 2. High-Altitude Cyan Glowing Aura
+          const auraPts = data.india_boundary.map(([lat, lng]) =>
+            latLngToVector3(lat, lng, GLOBE_RADIUS + 1.0)
+          );
+          const auraGeo = new THREE.BufferGeometry().setFromPoints(auraPts);
+          const auraMat = new THREE.LineBasicMaterial({
+            color: 0x00ffcc,
+            transparent: true,
+            opacity: 0.7,
+          });
+          const auraLine = new THREE.LineLoop(auraGeo, auraMat);
+          globeGroup.add(auraLine);
+
+          // 3. Ground-level Shadow Contour
+          const shadowPts = data.india_boundary.map(([lat, lng]) =>
+            latLngToVector3(lat, lng, GLOBE_RADIUS + 0.55)
+          );
+          const shadowGeo = new THREE.BufferGeometry().setFromPoints(shadowPts);
+          const shadowMat = new THREE.LineBasicMaterial({
+            color: 0x00cc44,
+            transparent: true,
+            opacity: 0.5,
+          });
+          const shadowLine = new THREE.LineLoop(shadowGeo, shadowMat);
+          globeGroup.add(shadowLine);
+        }
+
+        // 4. Glowing Holographic Interior Particle Grid of India Landmass (921 tactical points)
+        if (data.india_interior_particles && data.india_interior_particles.length > 0) {
+          const count = data.india_interior_particles.length;
+          const posArray = new Float32Array(count * 3);
+          data.india_interior_particles.forEach(([lat, lng], i) => {
+            const v = latLngToVector3(lat, lng, GLOBE_RADIUS + 0.48);
+            posArray[i * 3] = v.x;
+            posArray[i * 3 + 1] = v.y;
+            posArray[i * 3 + 2] = v.z;
+          });
+          const interiorGeo = new THREE.BufferGeometry();
+          interiorGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+          const interiorCanvas = document.createElement('canvas');
+          interiorCanvas.width = 16;
+          interiorCanvas.height = 16;
+          const ictx = interiorCanvas.getContext('2d');
+          if (ictx) {
+            const grad = ictx.createRadialGradient(8, 8, 0, 8, 8, 8);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.35, '#00ff66');
+            grad.addColorStop(1, 'rgba(0, 255, 102, 0)');
+            ictx.fillStyle = grad;
+            ictx.beginPath();
+            ictx.arc(8, 8, 8, 0, Math.PI * 2);
+            ictx.fill();
+          }
+          const interiorTex = new THREE.CanvasTexture(interiorCanvas);
+          const interiorMat = new THREE.PointsMaterial({
+            color: 0x00ff66,
+            size: 2.4,
+            map: interiorTex,
+            transparent: true,
+            opacity: 0.95,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          });
+          const interiorMesh = new THREE.Points(interiorGeo, interiorMat);
+          globeGroup.add(interiorMesh);
+        }
+
+        // 5. Neighbouring Country Contours for Edge Definition
+        if (data.neighbors) {
+          data.neighbors.forEach((neighbor) => {
+            neighbor.coordinates.forEach((ring) => {
+              const pts = ring.map(([lat, lng]) =>
+                latLngToVector3(lat, lng, GLOBE_RADIUS + 0.3)
+              );
+              if (pts.length < 3) return;
+              const nGeo = new THREE.BufferGeometry().setFromPoints(pts);
+              const nMat = new THREE.LineBasicMaterial({
+                color: 0x00ff66,
+                transparent: true,
+                opacity: 0.28,
+              });
+              const nLine = new THREE.LineLoop(nGeo, nMat);
+              globeGroup.add(nLine);
+            });
+          });
+        }
+
+        // 6. Major Indian Tech & Banking Rail Hubs (Delhi, Mumbai, Bengaluru, etc.)
+        if (data.major_cities) {
+          data.major_cities.forEach((city) => {
+            const cPos = latLngToVector3(city.lat, city.lng, GLOBE_RADIUS + 0.9);
+            const cGeo = new THREE.SphereGeometry(0.75, 8, 8);
+            const cMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
+            const cMesh = new THREE.Mesh(cGeo, cMat);
+            cMesh.position.copy(cPos);
+            globeGroup.add(cMesh);
+
+            // Small beacon pulse ring
+            const ringGeo = new THREE.RingGeometry(0.9, 1.35, 16);
+            const ringMat = new THREE.MeshBasicMaterial({
+              color: 0x00ffcc,
+              side: THREE.DoubleSide,
+              transparent: true,
+              opacity: 0.75,
+            });
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.position.copy(cPos.clone().multiplyScalar(1.005));
+            ringMesh.lookAt(cPos.clone().multiplyScalar(2));
+            globeGroup.add(ringMesh);
+
+            cityObjects.push({
+              mesh: cMesh,
+              data: {
+                title: `${city.name.toUpperCase()} · HUB NODE`,
+                subtitle: `Sector [${city.lat.toFixed(2)}°N, ${city.lng.toFixed(2)}°E]`,
+                badge: city.role.toUpperCase(),
+                isAlert: false,
+              },
+            });
+          });
+        }
+      })
+      .catch(() => {});
+
+    // 8. India Target Beacon Reticle (centered over India: lat 22.8, lng 79.2)
     const indiaCenterPos = latLngToVector3(22.8, 79.2, GLOBE_RADIUS + 2.5);
-    const indiaRingGeo = new THREE.RingGeometry(4.0, 5.0, 32);
+    const indiaRingGeo = new THREE.RingGeometry(4.5, 5.8, 36);
     const indiaRingMat = new THREE.MeshBasicMaterial({
       color: 0x00ff66,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.85,
     });
     const indiaRing = new THREE.Mesh(indiaRingGeo, indiaRingMat);
     indiaRing.position.copy(indiaCenterPos);
     indiaRing.lookAt(indiaCenterPos.clone().multiplyScalar(2));
     globeGroup.add(indiaRing);
 
-    // 9. Place Nodes (Domestic Indian Bank Accounts & Mules)
+    // Inner reticle ring
+    const innerRingGeo = new THREE.RingGeometry(2.2, 2.9, 24);
+    const innerRingMat = new THREE.MeshBasicMaterial({
+      color: 0x00ffcc,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9,
+    });
+    const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+    innerRing.position.copy(indiaCenterPos.clone().multiplyScalar(1.002));
+    innerRing.lookAt(indiaCenterPos.clone().multiplyScalar(2));
+    globeGroup.add(innerRing);
+
+    // 9. Place Nodes (Domestic Indian Bank Accounts & Mules - Scaled for Map Visibility)
     const nodeObjects: { mesh: THREE.Mesh; data: GlobeNode }[] = [];
     const activeNodes = nodesRef.current;
 
     activeNodes.forEach((n) => {
-      const pos = latLngToVector3(n.lat, n.lng, GLOBE_RADIUS + 1.2);
+      const pos = latLngToVector3(n.lat, n.lng, GLOBE_RADIUS + 1.1);
 
       const isRed = n.is_flagged;
       const colorHex = isRed ? 0xff003f : 0x00ff66;
 
-      const nodeGeo = new THREE.SphereGeometry(isRed ? 1.5 : 1.1, 12, 12);
-      const nodeMat = new THREE.MeshBasicMaterial({ color: colorHex });
+      // Scaled down so nodes do not drown out India's national shape
+      const nodeGeo = new THREE.SphereGeometry(isRed ? 0.9 : 0.55, 10, 10);
+      const nodeMat = new THREE.MeshBasicMaterial({
+        color: colorHex,
+        transparent: !isRed,
+        opacity: isRed ? 1.0 : 0.75,
+      });
       const mesh = new THREE.Mesh(nodeGeo, nodeMat);
       mesh.position.copy(pos);
       globeGroup.add(mesh);
 
       // Pin beacon extending outwards
-      const pinTop = pos.clone().multiplyScalar(1.03);
+      const pinTop = pos.clone().multiplyScalar(isRed ? 1.04 : 1.025);
       const pinGeo = new THREE.BufferGeometry().setFromPoints([pos, pinTop]);
       const pinMat = new THREE.LineBasicMaterial({
         color: colorHex,
         transparent: true,
-        opacity: 0.75,
+        opacity: isRed ? 0.85 : 0.45,
       });
       const pinLine = new THREE.Line(pinGeo, pinMat);
       globeGroup.add(pinLine);
 
       // Flagged mules get pulsating red outer ring
       if (isRed) {
-        const pulseRingGeo = new THREE.RingGeometry(1.6, 2.2, 16);
+        const pulseRingGeo = new THREE.RingGeometry(1.2, 1.8, 16);
         const pulseRingMat = new THREE.MeshBasicMaterial({
           color: 0xff003f,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.75,
+          opacity: 0.85,
         });
         const pulseRing = new THREE.Mesh(pulseRingGeo, pulseRingMat);
         pulseRing.position.copy(pinTop);
@@ -425,6 +599,25 @@ export default function CyberGlobe3D({
             subtitle: `${d.city}, ${d.state || 'India'} · ${d.category || d.type}`,
             badge: d.is_flagged ? 'ALERT: FLAGGED MULE' : 'VERIFIED RETAIL USER',
             isAlert: d.is_flagged,
+          });
+          renderer.domElement.style.cursor = 'pointer';
+          return;
+        }
+      }
+
+      // Check hovered major city hub
+      const cityMeshes = cityObjects.map((c) => c.mesh);
+      const cityIntersects = raycaster.intersectObjects(cityMeshes);
+      if (cityIntersects.length > 0) {
+        const cHit = cityObjects.find((c) => c.mesh === cityIntersects[0].object);
+        if (cHit) {
+          setHoveredEntity({
+            x: e.clientX,
+            y: e.clientY,
+            title: cHit.data.title,
+            subtitle: cHit.data.subtitle,
+            badge: cHit.data.badge,
+            isAlert: false,
           });
           renderer.domElement.style.cursor = 'pointer';
           return;
@@ -552,7 +745,7 @@ export default function CyberGlobe3D({
       <div className="pointer-events-none absolute left-4 top-4 font-mono text-[11px] text-green-400 bg-black/90 px-3 py-2 border border-green-500/40 rounded flex flex-col gap-1 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-ping" />
-          <span className="font-bold tracking-widest text-white">AEGIS 3D CYBER GLOBE</span>
+          <span className="font-bold tracking-widest text-white">TRACE 3D CYBER GLOBE</span>
           <span className="px-1.5 py-0.2 bg-green-950 border border-green-500 text-[10px] text-green-300 rounded font-bold">
             🇮🇳 INDIA UPI RAIL
           </span>

@@ -206,7 +206,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-green-400 animate-ping" />
             <h1 className="text-sm font-black tracking-widest text-white uppercase flex items-center gap-2">
-              <span className="text-green-400">AEGIS</span> INDIA UPI SURVEILLANCE
+              <span className="text-green-400">TRACE</span> INDIA UPI SURVEILLANCE
             </h1>
           </div>
           <div className="hidden lg:flex items-center gap-1.5 border-l border-green-500/30 pl-3 text-[10px]">

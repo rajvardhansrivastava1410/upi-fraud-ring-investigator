@@ -78,7 +78,7 @@ export default function PipelineSequenceController({ onSequenceStageChange, onRe
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-ping" />
               <span className="font-mono text-xs font-black tracking-widest text-white uppercase">
-                AEGIS INDIA UPI SURVEILLANCE
+                TRACE INDIA UPI SURVEILLANCE
               </span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-green-950 text-green-400 border border-green-500 font-bold">
                 {stage}

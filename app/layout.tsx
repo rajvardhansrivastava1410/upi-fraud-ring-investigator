@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'UPI Fraud-Ring Investigator',
+  title: 'TRACE | India UPI Surveillance & Fraud Ring Graph Investigator',
   description: 'Analyst workbench for coordinated-behaviour review (synthetic data only)',
 };
 
