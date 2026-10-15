@@ -79,8 +79,18 @@ export default function CyberGlobe3D({
     amount?: string;
   } | null>(null);
 
-  const [activeTelemetry, setActiveTelemetry] = useState<string>('ORBIT_STEADY');
-  const [isLockedOnIndia, setIsLockedOnIndia] = useState<boolean>(false);
+  const [activeTelemetry, setActiveTelemetry] = useState<string>('INDIA_UPI_LOCKED');
+
+  // Keep callback refs stable across renders
+  const onSelectNodeRef = useRef(onSelectNode);
+  onSelectNodeRef.current = onSelectNode;
+  const onSelectLinkRef = useRef(onSelectLink);
+  onSelectLinkRef.current = onSelectLink;
+
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const linksRef = useRef(links);
+  linksRef.current = links;
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -93,12 +103,16 @@ export default function CyberGlobe3D({
     scene.background = new THREE.Color(0x000000);
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
-    // Opening zoom animation starts in high orbit at z=480, zooms into z=185 (India close-up)
-    camera.position.set(0, 25, 480);
+    // Start at distance 380, zooms smoothly to 175 (India close-up)
+    camera.position.set(0, 0, 380);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: 'high-performance',
+    });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
@@ -106,19 +120,26 @@ export default function CyberGlobe3D({
     const globeGroup = new THREE.Group();
     scene.add(globeGroup);
 
-    // Initial orientation: tilt and starting space orbit rotation
-    globeGroup.rotation.x = 0.45;
-    globeGroup.rotation.y = 0.5;
+    // Compute exact target quaternion so India center (lat: 22.8, lng: 79.2) is DEAD CENTER in the camera
+    const indiaPos = latLngToVector3(22.8, 79.2, 100);
+    const indiaNormal = indiaPos.clone().normalize();
+    // Rotate vector from indiaNormal to camera axis (0, 0, 1)
+    const targetQuat = new THREE.Quaternion().setFromUnitVectors(
+      indiaNormal,
+      new THREE.Vector3(0, 0, 1)
+    );
 
-    // India target orientation (lat: 20.59°N, lng: 78.96°E)
-    // When rotX = -0.36 and rotY = 3.32, India faces directly towards the camera on the Z axis
-    const INDIA_TARGET_ROTX = -0.36;
-    const INDIA_TARGET_ROTY = 3.32;
+    // Initial space starting orientation (tilted slightly away)
+    const startQuat = targetQuat.clone().multiply(
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(0.35, -1.8, 0.15))
+    );
+
+    globeGroup.quaternion.copy(startQuat);
 
     // 2. Base Dark Cyber Sphere
-    const sphereGeo = new THREE.SphereGeometry(GLOBE_RADIUS - 0.5, 64, 64);
+    const sphereGeo = new THREE.SphereGeometry(GLOBE_RADIUS - 0.5, 48, 48);
     const sphereMat = new THREE.MeshBasicMaterial({
-      color: 0x020704,
+      color: 0x020804,
       transparent: true,
       opacity: 0.96,
     });
@@ -126,7 +147,7 @@ export default function CyberGlobe3D({
     globeGroup.add(baseSphere);
 
     // 3. Glowing Cyber Wireframe Latitude/Longitude Grid
-    const wireframeGeo = new THREE.SphereGeometry(GLOBE_RADIUS + 0.2, 36, 18);
+    const wireframeGeo = new THREE.SphereGeometry(GLOBE_RADIUS + 0.2, 32, 16);
     const wireframeMat = new THREE.MeshBasicMaterial({
       color: 0x00ff66,
       wireframe: true,
@@ -137,11 +158,11 @@ export default function CyberGlobe3D({
     globeGroup.add(wireframeMesh);
 
     // 4. Equatorial Navigation Ring
-    const ringGeo = new THREE.RingGeometry(GLOBE_RADIUS + 8, GLOBE_RADIUS + 9, 64);
+    const ringGeo = new THREE.RingGeometry(GLOBE_RADIUS + 7, GLOBE_RADIUS + 8, 48);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0x00ff66,
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.2,
       side: THREE.DoubleSide,
     });
     const eqRing = new THREE.Mesh(ringGeo, ringMat);
@@ -149,7 +170,7 @@ export default function CyberGlobe3D({
     globeGroup.add(eqRing);
 
     // 5. Outer Atmospheric Glow (Green Aurora)
-    const haloGeo = new THREE.SphereGeometry(GLOBE_RADIUS + 5, 48, 48);
+    const haloGeo = new THREE.SphereGeometry(GLOBE_RADIUS + 4, 36, 36);
     const haloMat = new THREE.ShaderMaterial({
       vertexShader: `
         varying vec3 vNormal;
@@ -162,7 +183,7 @@ export default function CyberGlobe3D({
         varying vec3 vNormal;
         void main() {
           float intensity = pow(0.65 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.5);
-          gl_FragColor = vec4(0.0, 1.0, 0.4, 1.0) * intensity * 0.7;
+          gl_FragColor = vec4(0.0, 1.0, 0.4, 1.0) * intensity * 0.65;
         }
       `,
       blending: THREE.AdditiveBlending,
@@ -241,56 +262,55 @@ export default function CyberGlobe3D({
       })
       .catch(() => {});
 
-    // 8. India Center Target Beacon (Illuminated 3D Reticle)
-    const indiaCenterPos = latLngToVector3(20.5937, 78.9629, GLOBE_RADIUS + 2.5);
-    const indiaRingGeo = new THREE.RingGeometry(5.0, 6.2, 32);
+    // 8. India Target Beacon Reticle (centered over India)
+    const indiaCenterPos = latLngToVector3(22.8, 79.2, GLOBE_RADIUS + 2.5);
+    const indiaRingGeo = new THREE.RingGeometry(4.0, 5.0, 32);
     const indiaRingMat = new THREE.MeshBasicMaterial({
       color: 0x00ff66,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.75,
     });
     const indiaRing = new THREE.Mesh(indiaRingGeo, indiaRingMat);
     indiaRing.position.copy(indiaCenterPos);
     indiaRing.lookAt(indiaCenterPos.clone().multiplyScalar(2));
     globeGroup.add(indiaRing);
 
-    // 9. Place Domestic Indian Account & Mule Nodes
+    // 9. Place Nodes (Domestic Indian Bank Accounts & Mules)
     const nodeObjects: { mesh: THREE.Mesh; data: GlobeNode }[] = [];
-    const nodeMap = new Map<string, THREE.Vector3>();
+    const activeNodes = nodesRef.current;
 
-    nodes.forEach((n) => {
+    activeNodes.forEach((n) => {
       const pos = latLngToVector3(n.lat, n.lng, GLOBE_RADIUS + 1.2);
-      nodeMap.set(n.id, pos);
 
       const isRed = n.is_flagged;
       const colorHex = isRed ? 0xff003f : 0x00ff66;
 
-      const nodeGeo = new THREE.SphereGeometry(isRed ? 1.6 : 1.2, 16, 16);
+      const nodeGeo = new THREE.SphereGeometry(isRed ? 1.5 : 1.1, 12, 12);
       const nodeMat = new THREE.MeshBasicMaterial({ color: colorHex });
       const mesh = new THREE.Mesh(nodeGeo, nodeMat);
       mesh.position.copy(pos);
       globeGroup.add(mesh);
 
-      // Beacon pin extending outwards
+      // Pin beacon extending outwards
       const pinTop = pos.clone().multiplyScalar(1.03);
       const pinGeo = new THREE.BufferGeometry().setFromPoints([pos, pinTop]);
       const pinMat = new THREE.LineBasicMaterial({
         color: colorHex,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.75,
       });
       const pinLine = new THREE.Line(pinGeo, pinMat);
       globeGroup.add(pinLine);
 
-      // Flagged mules get pulsating crimson ring
+      // Flagged mules get pulsating red outer ring
       if (isRed) {
-        const pulseRingGeo = new THREE.RingGeometry(1.8, 2.5, 24);
+        const pulseRingGeo = new THREE.RingGeometry(1.6, 2.2, 16);
         const pulseRingMat = new THREE.MeshBasicMaterial({
           color: 0xff003f,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.8,
+          opacity: 0.75,
         });
         const pulseRing = new THREE.Mesh(pulseRingGeo, pulseRingMat);
         pulseRing.position.copy(pinTop);
@@ -301,7 +321,7 @@ export default function CyberGlobe3D({
       nodeObjects.push({ mesh, data: n });
     });
 
-    // 10. Domestic Indian Transaction Arcs & Animated Laser Pulses
+    // 10. Pipeline Arcs & Animated Laser Pulses
     interface PipelineArc {
       curve: THREE.QuadraticBezierCurve3;
       pulseMesh: THREE.Mesh;
@@ -312,19 +332,19 @@ export default function CyberGlobe3D({
     }
     const pipelineArcs: PipelineArc[] = [];
 
-    const renderLinks = links.slice(0, 140);
-    renderLinks.forEach((link, idx) => {
+    const activeLinks = linksRef.current.slice(0, 120);
+    activeLinks.forEach((link, idx) => {
       const p1 = latLngToVector3(link.from_lat, link.from_lng, GLOBE_RADIUS + 1.2);
       const p2 = latLngToVector3(link.to_lat, link.to_lng, GLOBE_RADIUS + 1.2);
       const dist = p1.distanceTo(p2);
       if (dist < 1) return;
 
       const mid = p1.clone().add(p2).multiplyScalar(0.5);
-      const elevation = Math.min(dist * 0.35, 35);
+      const elevation = Math.min(dist * 0.35, 30);
       mid.normalize().multiplyScalar(GLOBE_RADIUS + 1.2 + elevation);
 
       const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
-      const curvePoints = curve.getPoints(36);
+      const curvePoints = curve.getPoints(24);
       const arcGeo = new THREE.BufferGeometry().setFromPoints(curvePoints);
 
       const isFlagged = link.is_flagged || (selectedAlertId != null && link.ring_id === selectedAlertId);
@@ -333,14 +353,13 @@ export default function CyberGlobe3D({
       const arcMat = new THREE.LineBasicMaterial({
         color: arcColor,
         transparent: true,
-        opacity: isFlagged ? 0.9 : 0.4,
-        linewidth: isFlagged ? 2 : 1,
+        opacity: isFlagged ? 0.85 : 0.35,
       });
       const arcLine = new THREE.Line(arcGeo, arcMat);
       globeGroup.add(arcLine);
 
       // Glowing laser bead
-      const beadGeo = new THREE.SphereGeometry(isFlagged ? 1.5 : 1.0, 8, 8);
+      const beadGeo = new THREE.SphereGeometry(isFlagged ? 1.3 : 0.9, 6, 6);
       const beadMat = new THREE.MeshBasicMaterial({
         color: isFlagged ? 0xff003f : 0xffffff,
       });
@@ -351,18 +370,18 @@ export default function CyberGlobe3D({
         curve,
         pulseMesh,
         progress: (idx * 0.13) % 1.0,
-        speed: 0.003 + (idx % 5) * 0.001,
+        speed: 0.003 + (idx % 4) * 0.001,
         isFlagged,
         data: link,
       });
     });
 
-    // 11. Mouse Interaction
+    // 11. Interactive Controls (Orbit with User Drag)
     let isDragging = false;
     let prevMousePos = { x: 0, y: 0 };
-    let targetRotY = globeGroup.rotation.y;
-    let targetRotX = globeGroup.rotation.x;
     let userInteracted = false;
+    const currentQuat = startQuat.clone();
+    let zoomCompleted = false;
 
     const onMouseDown = (e: MouseEvent) => {
       isDragging = true;
@@ -376,16 +395,20 @@ export default function CyberGlobe3D({
       const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
       if (isDragging) {
-        const deltaX = e.clientX - prevMousePos.x;
-        const deltaY = e.clientY - prevMousePos.y;
-        targetRotY += deltaX * 0.005;
-        targetRotX += deltaY * 0.005;
-        targetRotX = Math.max(-1.1, Math.min(1.1, targetRotX));
+        const deltaX = (e.clientX - prevMousePos.x) * 0.005;
+        const deltaY = (e.clientY - prevMousePos.y) * 0.005;
+
+        const deltaQuatX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), deltaY);
+        const deltaQuatY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), deltaX);
+
+        globeGroup.quaternion.multiplyQuaternions(deltaQuatY, globeGroup.quaternion);
+        globeGroup.quaternion.multiply(deltaQuatX);
+
         prevMousePos = { x: e.clientX, y: e.clientY };
         return;
       }
 
-      // Raycasting hover check
+      // Raycaster check for hovered node
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(new THREE.Vector2(mouseX, mouseY), camera);
       const meshes = nodeObjects.map((n) => n.mesh);
@@ -419,7 +442,7 @@ export default function CyberGlobe3D({
       e.preventDefault();
       userInteracted = true;
       camera.position.z += e.deltaY * 0.15;
-      camera.position.z = Math.max(150, Math.min(480, camera.position.z));
+      camera.position.z = Math.max(140, Math.min(420, camera.position.z));
     };
 
     const dom = renderer.domElement;
@@ -438,62 +461,54 @@ export default function CyberGlobe3D({
       const intersects = raycaster.intersectObjects(meshes);
       if (intersects.length > 0) {
         const hit = nodeObjects.find((n) => n.mesh === intersects[0].object);
-        if (hit && onSelectNode) {
-          onSelectNode(hit.data);
+        if (hit && onSelectNodeRef.current) {
+          onSelectNodeRef.current(hit.data);
         }
       }
     };
     dom.addEventListener('click', onClick);
 
-    // 12. Animation Loop with Opening Zoom-In to India
+    // 12. Animation Loop: Zooms into India ONCE and STAYS THE SAME
     let frameId: number;
-    let clock = new THREE.Clock();
+    const clock = new THREE.Clock();
 
     const animate = () => {
       frameId = requestAnimationFrame(animate);
       const elapsedTime = clock.getElapsedTime();
 
-      // Opening Zoom-In Sequence: 0.0s to 3.2s
-      // Starts at high orbit (z=480), zooms down to z=185 while rotating globe directly into India
-      if (!userInteracted && elapsedTime < 3.2) {
-        const t = Math.min(elapsedTime / 3.2, 1.0);
+      // ONE-TIME OPENING ZOOM (0.0s to 2.0s):
+      // Camera zooms in from 380 to 175, globe rotates from startQuat to targetQuat (centering India)
+      if (!userInteracted && !zoomCompleted) {
+        const t = Math.min(elapsedTime / 2.0, 1.0);
         const ease = 1 - Math.pow(1 - t, 3); // Ease-out cubic
 
-        camera.position.z = 480 - ease * (480 - 185);
+        camera.position.z = 380 - ease * (380 - 175);
+        globeGroup.quaternion.slerpQuaternions(startQuat, targetQuat, ease);
 
-        // Smoothly rotate globe towards India
-        targetRotX = 0.45 + ease * (INDIA_TARGET_ROTX - 0.45);
-        targetRotY = 0.5 + ease * (INDIA_TARGET_ROTY - 0.5);
-
-        globeGroup.rotation.x = targetRotX;
-        globeGroup.rotation.y = targetRotY;
-
-        setActiveTelemetry('ZOOMING INTO INDIA (UPI CORRIDOR)...');
-        setIsLockedOnIndia(false);
-      } else if (!userInteracted && elapsedTime >= 3.2 && elapsedTime < 4.0) {
-        setActiveTelemetry('TARGET LOCKED: INDIA UPI SURVEILLANCE SECTOR');
-        setIsLockedOnIndia(true);
-      } else {
-        if (!userInteracted) {
-          // Gentle micro-orbit around India to show 3D depth
-          targetRotY += 0.0006;
+        if (t >= 1.0) {
+          zoomCompleted = true;
+          camera.position.z = 175;
+          globeGroup.quaternion.copy(targetQuat);
+          setActiveTelemetry('TARGET_LOCKED: INDIA UPI RAIL');
         }
-        globeGroup.rotation.y += (targetRotY - globeGroup.rotation.y) * 0.08;
-        globeGroup.rotation.x += (targetRotX - globeGroup.rotation.x) * 0.08;
+      } else if (!userInteracted && zoomCompleted) {
+        // Stays EXACTLY the same — locked on India with zero drift
+        camera.position.z = 175;
       }
 
       // Animate laser pipeline pulses along arcs
       if (pipelineActive) {
-        pipelineArcs.forEach((p) => {
+        for (let i = 0; i < pipelineArcs.length; i++) {
+          const p = pipelineArcs[i];
           p.progress = (p.progress + p.speed) % 1.0;
           const pos = p.curve.getPoint(p.progress);
           p.pulseMesh.position.copy(pos);
-        });
+        }
       }
 
-      // Animate pulsing India center ring
+      // Subtle pulse on India reticle
       if (indiaRing) {
-        const pulse = 1.0 + Math.sin(elapsedTime * 3) * 0.15;
+        const pulse = 1.0 + Math.sin(elapsedTime * 2.5) * 0.12;
         indiaRing.scale.set(pulse, pulse, 1);
       }
 
@@ -523,7 +538,7 @@ export default function CyberGlobe3D({
       renderer.dispose();
       if (container.contains(dom)) container.removeChild(dom);
     };
-  }, [nodes, links, onSelectNode, onSelectLink, selectedAlertId, pipelineActive]);
+  }, []); // Mounts strictly ONCE — no unmounting or resetting loops!
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black select-none font-mono">
@@ -534,7 +549,7 @@ export default function CyberGlobe3D({
       <div className="pointer-events-none absolute inset-0 border border-green-500/20 shadow-[inset_0_0_80px_rgba(0,0,0,0.9)]" />
 
       {/* Top Left Telemetry Crosshairs */}
-      <div className="pointer-events-none absolute left-4 top-4 font-mono text-[11px] text-green-400 bg-black/85 px-3 py-2 border border-green-500/40 rounded flex flex-col gap-1 backdrop-blur-sm">
+      <div className="pointer-events-none absolute left-4 top-4 font-mono text-[11px] text-green-400 bg-black/90 px-3 py-2 border border-green-500/40 rounded flex flex-col gap-1 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-ping" />
           <span className="font-bold tracking-widest text-white">AEGIS 3D CYBER GLOBE</span>
@@ -543,20 +558,12 @@ export default function CyberGlobe3D({
           </span>
         </div>
         <div className="text-[10px] text-green-300">
-          STATUS: <span className="text-white font-bold">{activeTelemetry}</span>
+          SECTOR: <span className="text-white font-bold">[22.8°N, 79.2°E] · TARGET LOCKED</span>
         </div>
         <div className="text-[9px] text-slate-400">
-          SECTOR: [20.59°N, 78.96°E] · NODES: {nodes.length} · PIPELINE ARCS: {links.length}
+          DRAG TO ORBIT · SCROLL TO ZOOM · CLICK TO INSPECT
         </div>
       </div>
-
-      {/* Target Locked Indicator Banner */}
-      {isLockedOnIndia && (
-        <div className="pointer-events-none absolute bottom-4 left-4 z-20 flex items-center gap-2 bg-black/90 border border-green-400 px-3 py-1.5 rounded text-xs text-white shadow-[0_0_15px_rgba(0,255,102,0.4)] animate-in fade-in duration-300">
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span>FOCUSED ON: <strong className="text-green-300">INDIA DOMESTIC UPI NETWORK</strong></span>
-        </div>
-      )}
 
       {/* Interactive Tooltip on Hover */}
       {hoveredEntity && (

@@ -10,17 +10,17 @@ import { describeEdge, fmtDuration, fmtTime } from '@/lib/format';
 import { useStore } from '@/lib/store';
 
 const LEGEND = [
-  { symbol: '●', label: 'Account' },
-  { symbol: '◆', label: 'Device' },
-  { symbol: '▬', label: 'Merchant' },
-  { symbol: '▲', label: 'Complaint' },
+  { symbol: '●', label: 'Account', color: 'text-green-400' },
+  { symbol: '◆', label: 'Device', color: 'text-white' },
+  { symbol: '▬', label: 'Merchant', color: 'text-green-400' },
+  { symbol: '▲', label: 'Complaint', color: 'text-red-400' },
+  { symbol: '━', label: 'Fraud Path', color: 'text-red-500 font-bold' },
 ];
 
 export default function GraphPane() {
   const alertId = useStore((s) => s.selectedAlertId);
   const selectedEdgeId = useStore((s) => s.selectedEdgeId);
 
-  // useAlertGraphAsOf returns time-filtered graph while preserving the full graph for the slider.
   const { data: graph, error, isLoading } = useAlertGraphAsOf(alertId ?? '');
 
   const [layoutKey, setLayoutKey] = useState(0);
@@ -28,7 +28,13 @@ export default function GraphPane() {
   const [minAmount, setMinAmount] = useState(0);
 
   if (!alertId) {
-    return <EmptyState icon="graph" title="No alert selected" description="Select an alert from the queue to explore its transaction graph." />;
+    return (
+      <EmptyState
+        icon="graph"
+        title="No alert selected"
+        description="Select an alert from the queue to explore its transaction graph."
+      />
+    );
   }
   if (isLoading) return <LoadingState variant="graph" label={`Loading graph for ${alertId}…`} />;
   if (error || !graph) {
@@ -36,7 +42,7 @@ export default function GraphPane() {
       <EmptyState
         icon="search"
         title={`No graph for ${alertId}`}
-        description="The demo fixtures include A-014 and A-051. Other alerts show a generic fallback."
+        description="Select another alert from the queue to explore its transaction graph."
       />
     );
   }
@@ -46,7 +52,7 @@ export default function GraphPane() {
   const lagMs = selected ? Date.parse(selected.ingest_time) - Date.parse(selected.event_time) : 0;
 
   // Filter edges based on control settings
-  const filteredEdges = graph.edges.filter(edge => {
+  const filteredEdges = graph.edges.filter((edge) => {
     if (!showIncomplete && edge.incomplete) return false;
     if (edge.amount && edge.amount < minAmount) return false;
     return true;
@@ -55,35 +61,42 @@ export default function GraphPane() {
   const filteredGraph = { ...graph, edges: filteredEdges };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-slate-800 px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
+    <div className="flex h-full flex-col bg-black text-white font-mono select-none">
+      {/* Header Bar */}
+      <div className="border-b border-green-500/40 px-4 py-3 bg-black">
+        <div className="flex items-center justify-between mb-2">
           <div>
-            <h2 className="text-sm font-semibold text-slate-100">Graph explorer · {alertId}</h2>
-            <p className="text-xs text-slate-400">
-              {filteredGraph.nodes.length} nodes, {filteredGraph.edges.length} edges. Amber edges are the evidence
-              path; grey edges are context.
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-ping" />
+              <h2 className="text-xs font-black tracking-widest text-white uppercase">
+                GRAPH TOPOLOGY EXPLORER · {alertId}
+              </h2>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              {filteredGraph.nodes.length} nodes, {filteredGraph.edges.length} edges ·{' '}
+              <span className="text-red-400 font-bold">Crimson edges</span> are fraud evidence;{' '}
+              <span className="text-green-400 font-bold">Green edges</span> are verified flows.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setLayoutKey((k) => k + 1)}
-            className="rounded border border-slate-700 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-amber-400"
+            className="rounded border border-green-500/60 bg-black px-2.5 py-1 text-[10px] font-bold text-green-300 hover:bg-green-950 transition-colors"
           >
-            Reset view
+            ↺ Reset View
           </button>
         </div>
 
         {/* Filter Controls */}
-        <div className="flex items-center gap-4 text-xs mt-2 p-2 bg-slate-900 rounded-md border border-slate-800">
+        <div className="flex items-center gap-4 text-[10px] mt-2 p-2 bg-black rounded border border-green-500/30">
           <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
             <input
               type="checkbox"
               checked={showIncomplete}
               onChange={(e) => setShowIncomplete(e.target.checked)}
-              className="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-amber-500"
+              className="rounded bg-black border-green-500/60 text-green-500 focus:ring-0"
             />
-            Show Incomplete/Missing Edges
+            Show Incomplete Edges
           </label>
           <label className="flex items-center gap-2 text-slate-300">
             Min Amount: ₹
@@ -92,19 +105,21 @@ export default function GraphPane() {
               step="1000"
               value={minAmount}
               onChange={(e) => setMinAmount(Number(e.target.value))}
-              className="bg-slate-950 border border-slate-700 rounded px-2 py-1 w-24 focus:border-amber-500 outline-none"
+              className="bg-black border border-green-500/50 rounded px-2 py-0.5 w-24 text-white focus:border-green-400 outline-none"
             />
           </label>
         </div>
       </div>
 
-      <div className="relative min-h-[350px] flex-1">
+      {/* Main Cytoscape Graph Canvas */}
+      <div className="relative min-h-[350px] flex-1 bg-black">
         <GraphView graph={filteredGraph} layoutKey={layoutKey} />
-        <ul className="absolute right-3 top-2 flex gap-3 rounded bg-slate-900/90 px-2.5 py-1.5 text-[11px] text-slate-300">
+        {/* Floating Legend */}
+        <ul className="absolute right-3 top-2 flex items-center gap-3 rounded bg-black/95 border border-green-500/40 px-2.5 py-1 text-[10px] text-white backdrop-blur-md shadow-[0_0_15px_rgba(0,0,0,0.8)]">
           {LEGEND.map((l) => (
-            <li key={l.label}>
-              <span className="mr-1 text-slate-400">{l.symbol}</span>
-              {l.label}
+            <li key={l.label} className="flex items-center gap-1">
+              <span className={l.color}>{l.symbol}</span>
+              <span>{l.label}</span>
             </li>
           ))}
         </ul>
@@ -113,22 +128,22 @@ export default function GraphPane() {
       {/* Time Slider */}
       <TimeSlider alertId={alertId} />
 
-      <div className="border-t border-slate-800 px-4 py-2 text-xs" aria-live="polite">
+      {/* Edge Inspection Status Bar */}
+      <div className="border-t border-green-500/30 px-4 py-2 text-[10px] bg-black" aria-live="polite">
         {selected ? (
-          <>
-            <p className="text-slate-100">
-              {selected.id} · {describeEdge(selected, labelOf)}
-            </p>
-            <p className="text-slate-400">
+          <div className="flex items-center justify-between">
+            <span className="text-white font-bold">
+              TX: {selected.id} · {describeEdge(selected, labelOf)}
+            </span>
+            <span className="text-slate-400">
               Event {fmtTime(selected.event_time)} · Ingested {fmtTime(selected.ingest_time)}
               {lagMs > 3_600_000 && (
-                <span className="text-amber-300"> · arrived {fmtDuration(lagMs)} after the event</span>
+                <span className="text-red-400 font-bold"> · Arrived {fmtDuration(lagMs)} late</span>
               )}
-              {selected.incomplete && <span className="text-amber-300"> · incomplete record</span>}
-            </p>
-          </>
+            </span>
+          </div>
         ) : (
-          <p className="text-slate-500">Click an edge to see its event and ingest times.</p>
+          <p className="text-slate-500">CLICK ANY DIRECTED EDGE TO INSPECT SETTLEMENT & INGESTION TELEMETRY</p>
         )}
       </div>
     </div>

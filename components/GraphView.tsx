@@ -6,72 +6,90 @@ import { useStore } from '@/lib/store';
 import { fmtINR } from '@/lib/format';
 import type { AlertGraph, GraphEdge } from '@/lib/types';
 
-// Node type is encoded by SHAPE (account = circle, device = diamond,
-// merchant = rounded box, complaint = triangle). Amber means "on the evidence
-// path", not "guilty".
+// Node type is encoded by SHAPE:
+// account = circle (green / red if flagged), device = diamond (white),
+// merchant = rounded box (green), complaint = triangle (red).
+// Evidence path edges are glowing crimson red (#ff003f).
 const STYLE = [
   {
     selector: 'node',
     style: {
       label: 'data(label)',
       'font-size': 10,
-      color: '#cbd5e1',
+      color: '#ffffff',
+      'font-family': 'monospace',
+      'font-weight': 'bold',
       'text-valign': 'bottom',
       'text-margin-y': 4,
       'text-wrap': 'ellipsis',
       'text-max-width': 90,
-      'background-color': '#334155',
-      'border-width': 1.5,
-      'border-color': '#64748b',
-      width: 26,
-      height: 26,
-      'text-background-color': '#020617',
-      'text-background-opacity': 0.75,
+      'background-color': '#001a0a',
+      'border-width': 2,
+      'border-color': '#00ff66',
+      width: 28,
+      height: 28,
+      'text-background-color': '#000000',
+      'text-background-opacity': 0.9,
       'text-background-padding': 2,
     },
   },
   { selector: 'node[type = "account"]', style: { shape: 'ellipse' } },
-  { selector: 'node[type = "device"]', style: { shape: 'diamond', width: 30, height: 30 } },
-  { selector: 'node[type = "merchant"]', style: { shape: 'round-rectangle', width: 36, height: 24 } },
-  { selector: 'node[type = "complaint"]', style: { shape: 'triangle', width: 24, height: 24 } },
+  { selector: 'node[type = "device"]', style: { shape: 'diamond', width: 30, height: 30, 'border-color': '#ffffff', 'background-color': '#111111' } },
+  { selector: 'node[type = "merchant"]', style: { shape: 'round-rectangle', width: 36, height: 24, 'border-color': '#00ff66' } },
+  { selector: 'node[type = "complaint"]', style: { shape: 'triangle', width: 26, height: 26, 'border-color': '#ff003f', 'background-color': '#33000d' } },
   {
     selector: 'node.flagged',
-    style: { 'background-color': '#92400e', 'border-color': '#fbbf24', 'border-width': 2.5 },
+    style: {
+      'background-color': '#33000d',
+      'border-color': '#ff003f',
+      'border-width': 3,
+      color: '#ff4d6d',
+    },
   },
   {
     selector: 'edge',
     style: {
-      width: 1.2,
-      'line-color': '#475569',
-      'target-arrow-color': '#475569',
+      width: 1.5,
+      'line-color': '#005522',
+      'target-arrow-color': '#00aa44',
       'target-arrow-shape': 'triangle',
       'arrow-scale': 0.9,
       'curve-style': 'bezier',
-      opacity: 0.55,
+      opacity: 0.65,
       label: 'data(label)',
       'font-size': 9,
-      color: '#94a3b8',
+      color: '#00ff66',
+      'font-family': 'monospace',
       'text-rotation': 'autorotate',
-      'text-background-color': '#020617',
-      'text-background-opacity': 0.85,
+      'text-background-color': '#000000',
+      'text-background-opacity': 0.9,
       'text-background-padding': 2,
     },
   },
-  { selector: 'edge[type = "uses_device"]', style: { 'line-style': 'dotted', 'target-arrow-shape': 'none' } },
-  { selector: 'edge.incomplete', style: { 'line-style': 'dashed' } },
+  { selector: 'edge[type = "uses_device"]', style: { 'line-style': 'dotted', 'target-arrow-shape': 'none', 'line-color': '#888888' } },
+  { selector: 'edge.incomplete', style: { 'line-style': 'dashed', 'line-color': '#ff003f' } },
   {
     selector: 'edge.evidence',
-    style: { width: 3, 'line-color': '#fbbf24', 'target-arrow-color': '#fbbf24', opacity: 1, color: '#fde68a' },
+    style: {
+      width: 3.5,
+      'line-color': '#ff003f',
+      'target-arrow-color': '#ff003f',
+      opacity: 1,
+      color: '#ff4d6d',
+      'font-weight': 'bold',
+      'z-index': 500,
+    },
   },
   {
     selector: 'edge.selected',
     style: {
       width: 5,
-      'line-color': '#fef3c7',
-      'target-arrow-color': '#fef3c7',
+      'line-color': '#ffffff',
+      'target-arrow-color': '#ffffff',
       opacity: 1,
       'z-index': 999,
       color: '#ffffff',
+      'font-weight': 'bold',
     },
   },
 ];
@@ -121,87 +139,84 @@ const NODE_TYPE_LABEL: Record<string, string> = {
 export default function GraphView({ graph, layoutKey }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | null>(null);
-  const selectedEdgeId = useStore((s) => s.selectedEdgeId);
-  const selectEdge = useStore((s) => s.selectEdge);
   const [tooltip, setTooltip] = useState<Tooltip>(null);
 
-  // Build the graph whenever the alert's data changes.
+  const selectedEdgeId = useStore((s) => s.selectedEdgeId);
+  const selectEdge = useStore((s) => s.selectEdge);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const evidence = new Set(graph.evidence_path);
-    const flagged = new Set<string>();
-    graph.edges.forEach((e) => {
-      if (evidence.has(e.id)) {
-        flagged.add(e.source);
-        flagged.add(e.target);
-      }
-    });
+    const evidenceEdgeIds = new Set(graph.evidence_path);
 
     const elements: ElementDefinition[] = [
       ...graph.nodes.map((n) => ({
         group: 'nodes' as const,
         data: { id: n.id, label: n.label, type: n.type },
-        classes: flagged.has(n.id) ? 'flagged' : '',
+        classes: `${n.type} ${n.flagged ? 'flagged' : ''}`,
       })),
-      ...graph.edges.map((e) => ({
-        group: 'edges' as const,
-        data: { id: e.id, source: e.source, target: e.target, type: e.type, label: edgeLabel(e) },
-        classes: [evidence.has(e.id) ? 'evidence' : '', e.incomplete ? 'incomplete' : '']
+      ...graph.edges.map((e) => {
+        const isEvidence = evidenceEdgeIds.has(e.id);
+        const classes = [
+          e.type,
+          isEvidence ? 'evidence' : '',
+          e.incomplete ? 'incomplete' : '',
+        ]
           .filter(Boolean)
-          .join(' '),
-      })),
+          .join(' ');
+        return {
+          group: 'edges' as const,
+          data: {
+            id: e.id,
+            source: e.source,
+            target: e.target,
+            label: edgeLabel(e),
+            type: e.type,
+          },
+          classes,
+        };
+      }),
     ];
 
     const cy = cytoscape({
       container: containerRef.current,
       elements,
-      style: STYLE as never, // cytoscape's stylesheet typing is stricter than needed here
+      style: STYLE as cytoscape.StylesheetStyle[],
       layout: LAYOUT,
       wheelSensitivity: 0.25,
       minZoom: 0.3,
       maxZoom: 3,
     });
 
-    cy.on('tap', 'edge', (evt) => selectEdge(evt.target.id()));
+    cyRef.current = cy;
+
+    cy.on('tap', 'edge', (evt) => {
+      selectEdge(evt.target.id());
+    });
     cy.on('tap', (evt) => {
       if (evt.target === cy) selectEdge(null);
     });
 
-    // Node tooltips
     cy.on('mouseover', 'node', (evt) => {
       const node = evt.target;
       const pos = node.renderedPosition();
-      const container = containerRef.current;
-      if (!container) return;
-      const rect = container.getBoundingClientRect();
       setTooltip({
         x: pos.x,
-        y: pos.y - 20,
+        y: pos.y - 15,
         label: node.data('label') as string,
         type: node.data('type') as string,
       });
     });
     cy.on('mouseout', 'node', () => setTooltip(null));
-    cy.on('tap', 'node', () => setTooltip(null));
 
-    const ro = new ResizeObserver(() => {
-      cy.resize();
-    });
-    if (containerRef.current) {
-      ro.observe(containerRef.current);
-    }
-
-    cyRef.current = cy;
     return () => {
-      ro.disconnect();
       cy.destroy();
       cyRef.current = null;
       setTooltip(null);
     };
   }, [graph, selectEdge]);
 
-  // Reflect the selected edge (set from the graph or from the evidence timeline).
+  // Reflect the selected edge
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
@@ -212,25 +227,24 @@ export default function GraphView({ graph, layoutKey }: Props) {
     }
   }, [selectedEdgeId, graph]);
 
-  // "Reset view" button.
+  // "Reset view" button
   useEffect(() => {
     if (layoutKey === 0) return;
     cyRef.current?.layout(LAYOUT).run();
   }, [layoutKey]);
 
   return (
-    <div ref={containerRef} className="relative h-full w-full">
+    <div ref={containerRef} className="relative h-full w-full bg-black">
       {tooltip && (
         <div
-          className="pointer-events-none absolute z-10 rounded bg-slate-800 border border-slate-700 px-2.5 py-1.5 text-xs shadow-lg"
+          className="pointer-events-none absolute z-10 rounded bg-black/95 border border-green-500/80 px-2.5 py-1.5 text-xs text-white shadow-[0_0_15px_rgba(0,255,102,0.4)] font-mono"
           style={{ left: tooltip.x, top: tooltip.y, transform: 'translate(-50%, -100%)' }}
           aria-hidden="true"
         >
-          <p className="font-medium text-slate-100">{tooltip.label}</p>
-          <p className="text-slate-400">{NODE_TYPE_LABEL[tooltip.type] ?? tooltip.type}</p>
+          <p className="font-bold text-white">{tooltip.label}</p>
+          <p className="text-green-400 text-[10px]">{NODE_TYPE_LABEL[tooltip.type] ?? tooltip.type}</p>
         </div>
       )}
     </div>
   );
 }
-

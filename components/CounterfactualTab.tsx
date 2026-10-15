@@ -41,7 +41,6 @@ export default function CounterfactualTab({ alert }: { alert: Alert }) {
     [alert, req, hyp, cutoff],
   );
 
-  // Real mode: debounced call to the backend. Demo mode: local only.
   useEffect(() => {
     if (DEMO) return;
     let cancelled = false;
@@ -58,7 +57,6 @@ export default function CounterfactualTab({ alert }: { alert: Alert }) {
 
   const result = DEMO ? local : remote ?? local;
 
-  // Edges that can be toggled: evidence path first, then any other edge a rule cites.
   const edgeRules = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const r of alert.reasons) {
@@ -96,61 +94,66 @@ export default function CounterfactualTab({ alert }: { alert: Alert }) {
   const changed = removed.length > 0 || hypId !== null || imputed.length > 0;
 
   return (
-    <div className="space-y-5 p-3 text-sm text-slate-200">
-      <p className="text-xs text-slate-400">
-        Synthetic scenario. This panel shows how the proposed explanation changes under
-        different assumptions. It does not change the stored score, rank or decision log.
+    <div className="space-y-4 p-3 font-mono text-xs text-white bg-black">
+      <p className="text-[10px] text-slate-400">
+        Simulate counterfactual graph removals to verify causal attribution of fraud rules.
       </p>
 
-      {/* Result */}
-      <section aria-live="polite" className="rounded border border-slate-700 bg-slate-900 p-3">
+      {/* Result Card */}
+      <section aria-live="polite" className="rounded-lg border border-green-500/50 bg-black p-3">
         <div className="flex items-baseline gap-4">
           <div>
-            <div className="text-xs text-slate-400">Current score</div>
-            <div className="text-lg">{fmt(alert.score)}</div>
+            <div className="text-[10px] text-slate-400 uppercase">Current Score</div>
+            <div className="text-sm font-bold text-white">{fmt(alert.score)}</div>
           </div>
-          <div aria-hidden className="text-slate-500">→</div>
+          <div aria-hidden className="text-green-400 font-bold">➔</div>
           <div>
-            <div className="text-xs text-slate-400">Under these assumptions</div>
-            <div className="text-2xl font-semibold text-amber-400">{fmt(result.new_score)}</div>
+            <div className="text-[10px] text-green-400 uppercase font-bold">Simulated Score</div>
+            <div className="text-xl font-black text-green-400">{fmt(result.new_score)}</div>
           </div>
           <div className="ml-auto text-right">
-            <div className="text-xs text-slate-400">Change</div>
-            <div>{fmtDelta(result.delta)}</div>
+            <div className="text-[10px] text-slate-400 uppercase">Delta</div>
+            <div className={`font-bold ${result.delta < 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {fmtDelta(result.delta)}
+            </div>
           </div>
         </div>
+
         <div
-          className={`mt-2 rounded px-2 py-1 text-xs ${
+          className={`mt-2 rounded px-2 py-1 text-[10px] font-bold ${
             nowBelow && !wasBelow
-              ? 'border border-amber-500 text-amber-300'
-              : 'border border-slate-700 text-slate-300'
+              ? 'border border-red-500 text-red-300 bg-red-950/40'
+              : 'border border-green-500/40 text-green-300 bg-green-950/20'
           }`}
         >
           {cutoffMsg}
-          {cutoff !== null && <span className="text-slate-500"> (cutoff score {fmt(cutoff)})</span>}
+          {cutoff !== null && <span className="text-slate-400"> (Cutoff: {fmt(cutoff)})</span>}
         </div>
-        {err && <div className="mt-2 text-xs text-amber-300">{err}</div>}
+
+        {err && <div className="mt-2 text-[10px] text-red-400">{err}</div>}
         {changed && (
           <button
             type="button"
-            className="mt-2 text-xs text-slate-400 underline"
+            className="mt-2 text-[10px] text-green-400 hover:text-white underline"
             onClick={() => { setRemoved([]); setHypId(null); setImputed([]); }}
           >
-            Reset assumptions
+            Reset all assumptions
           </button>
         )}
       </section>
 
       {/* Edge removal */}
       <section>
-        <h3 className="mb-1 font-medium">Evidence edges</h3>
-        <p className="mb-2 text-xs text-slate-400">
-          Uncheck an edge to see how the score changes without it.
+        <h3 className="mb-1 text-xs font-black tracking-wider text-green-400 uppercase">
+          EVIDENCE EDGE PERMUTATIONS
+        </h3>
+        <p className="mb-2 text-[10px] text-slate-400">
+          Uncheck any edge to inspect counterfactual score change if that transfer never occurred:
         </p>
         {edgeIds.length === 0 ? (
-          <p className="text-xs text-slate-500">No graph is available for this alert yet.</p>
+          <p className="text-[10px] text-slate-500">No graph is available for this alert yet.</p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-1.5">
             {edgeIds.map((id) => {
               const e = edgeById.get(id);
               const rules = edgeRules.get(id);
@@ -162,19 +165,21 @@ export default function CounterfactualTab({ alert }: { alert: Alert }) {
                 : '';
               return (
                 <li key={id}>
-                  <label className="flex cursor-pointer items-start gap-2 rounded px-1 py-1 hover:bg-slate-800">
+                  <label className="flex cursor-pointer items-start gap-2 rounded border border-slate-800 p-2 hover:border-green-500/50 bg-black">
                     <input
                       type="checkbox"
-                      className="mt-0.5"
+                      className="mt-0.5 rounded bg-black border-green-500/60 text-green-500"
                       checked={on}
                       onChange={() => toggleEdge(id)}
                     />
-                    <span className={on ? '' : 'text-slate-500 line-through'}>
-                      {e ? e.type.replace(/_/g, ' ') : id}
-                      {e?.amount != null && ` · ₹${e.amount.toLocaleString('en-IN')}`}
+                    <span className={on ? 'text-white' : 'text-slate-600 line-through'}>
+                      <span className="font-bold">{e ? e.type.replace(/_/g, ' ') : id}</span>
+                      {e?.amount != null && (
+                        <span className="text-green-400 font-bold"> · ₹{e.amount.toLocaleString('en-IN')}</span>
+                      )}
                       {when && <span className="text-slate-500"> · {when}</span>}
-                      <span className="block text-xs text-slate-500">
-                        {rules ? `Feeds: ${rules.join(', ')}` : 'Not tied to a scoring term'}
+                      <span className="block text-[10px] text-slate-400 mt-0.5">
+                        {rules ? `Feeds: ${rules.join(', ')}` : 'Contextual Edge'}
                       </span>
                     </span>
                   </label>
@@ -187,15 +192,16 @@ export default function CounterfactualTab({ alert }: { alert: Alert }) {
 
       {/* Benign hypotheses */}
       <section>
-        <h3 className="mb-1 font-medium">Benign explanations that could fit</h3>
-        <p className="mb-2 text-xs text-slate-400">
-          Select one to assume it holds. The check shows what would tell it apart from
-          coordinated behaviour.
+        <h3 className="mb-1 text-xs font-black tracking-wider text-green-400 uppercase">
+          BENIGN EXPLANATION HYPOTHESES
+        </h3>
+        <p className="mb-2 text-[10px] text-slate-400">
+          Assume an alternative benign narrative to test if the score drops below threshold:
         </p>
         {!hyp ? (
-          <p className="text-xs text-slate-500">Loading…</p>
+          <p className="text-[10px] text-slate-500">Loading hypotheses…</p>
         ) : hyp.hypotheses.length === 0 ? (
-          <p className="text-xs text-slate-500">No benign hypotheses recorded for this alert.</p>
+          <p className="text-[10px] text-slate-500">No alternative benign hypotheses recorded for this alert.</p>
         ) : (
           <ul className="space-y-2">
             {hyp.hypotheses.map((h) => {
@@ -203,8 +209,10 @@ export default function CounterfactualTab({ alert }: { alert: Alert }) {
               return (
                 <li key={h.id}>
                   <label
-                    className={`block cursor-pointer rounded border p-2 ${
-                      sel ? 'border-amber-500 bg-slate-800' : 'border-slate-700 hover:bg-slate-800'
+                    className={`block cursor-pointer rounded border p-2.5 transition-all ${
+                      sel
+                        ? 'border-green-400 bg-green-950/30 shadow-[0_0_10px_rgba(0,255,102,0.2)]'
+                        : 'border-slate-800 bg-black hover:border-slate-600'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -215,12 +223,12 @@ export default function CounterfactualTab({ alert }: { alert: Alert }) {
                         onChange={() => setHypId(h.id)}
                         onClick={() => sel && setHypId(null)}
                       />
-                      <span className="font-medium">{h.name}</span>
-                      <span className="ml-auto text-xs text-slate-400">−{fmt(h.points)}</span>
+                      <span className="font-bold text-white">{h.name}</span>
+                      <span className="ml-auto text-[10px] font-bold text-green-400">−{fmt(h.points)} pts</span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-300">{h.summary}</p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      <span className="text-slate-500">Distinguishing check: </span>
+                    <p className="mt-1 text-[11px] text-slate-300">{h.summary}</p>
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      <span className="text-slate-500 font-bold">Distinguishing audit: </span>
                       {h.check}
                     </p>
                   </label>
@@ -230,31 +238,6 @@ export default function CounterfactualTab({ alert }: { alert: Alert }) {
           </ul>
         )}
       </section>
-
-      {/* Missing-data what-ifs */}
-      {hyp && hyp.what_ifs.length > 0 && (
-        <section>
-          <h3 className="mb-1 font-medium">If missing records turned up</h3>
-          <ul className="space-y-1">
-            {hyp.what_ifs.map((w) => (
-              <li key={w.id}>
-                <label className="flex cursor-pointer items-start gap-2 rounded px-1 py-1 hover:bg-slate-800">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={imputed.includes(w.id)}
-                    onChange={() => toggleImpute(w.id)}
-                  />
-                  <span>
-                    {w.text}
-                    <span className="ml-2 text-xs text-slate-400">{fmtDelta(w.points)}</span>
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }

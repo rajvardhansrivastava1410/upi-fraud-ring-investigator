@@ -46,8 +46,8 @@ export default function TimeSlider({ alertId }: { alertId: string }) {
 
   if (!graph || points.length === 0) {
     return (
-      <div className="border-t border-slate-800 px-4 py-2 text-xs text-slate-500">
-        Time replay unavailable: no graph for this alert yet.
+      <div className="border-t border-green-500/30 px-4 py-2 text-xs text-slate-500 font-mono bg-black">
+        Time replay unavailable for this alert.
       </div>
     );
   }
@@ -76,10 +76,10 @@ export default function TimeSlider({ alertId }: { alertId: string }) {
       role="radio"
       aria-checked={mode === m}
       onClick={() => setMode(m)}
-      className={`rounded px-2 py-1 text-xs ${
+      className={`rounded px-2 py-0.5 text-[10px] font-bold transition-colors ${
         mode === m
-          ? 'bg-slate-700 text-amber-300'
-          : 'text-slate-400 hover:bg-slate-800'
+          ? 'bg-green-950 text-green-300 border border-green-500'
+          : 'text-slate-400 hover:text-white border border-transparent'
       }`}
     >
       {label}
@@ -87,15 +87,15 @@ export default function TimeSlider({ alertId }: { alertId: string }) {
   );
 
   return (
-    <div className="space-y-2 border-t border-slate-800 px-4 py-3 text-sm text-slate-200">
+    <div className="space-y-2 border-t border-green-500/30 px-4 py-2.5 text-xs text-white font-mono bg-black">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-slate-400">Replay</span>
+        <span className="text-[10px] font-bold text-green-400 uppercase">TIMELINE REPLAY:</span>
         <div role="radiogroup" aria-label="Time basis" className="flex gap-1">
-          {modeBtn('ingest', 'What the analyst knew')}
-          {modeBtn('event', 'When events happened')}
+          {modeBtn('ingest', 'Analyst Ingest Knowledge')}
+          {modeBtn('event', 'Real Event Time')}
         </div>
-        <span className="ml-auto text-xs text-slate-400" aria-live="polite">
-          {asOf == null ? 'Latest' : `As of ${fmtT(shownTime)}`} · {visible} of {total} edges
+        <span className="ml-auto text-[10px] text-slate-400" aria-live="polite">
+          {asOf == null ? '⚡ LATEST' : `AS OF ${fmtT(shownTime)}`} · {visible} of {total} edges
         </span>
       </div>
 
@@ -105,7 +105,7 @@ export default function TimeSlider({ alertId }: { alertId: string }) {
           aria-label="Previous time step"
           disabled={idx <= 0}
           onClick={() => go(idx - 1)}
-          className="rounded border border-slate-700 px-2 py-0.5 text-xs disabled:opacity-40"
+          className="rounded border border-green-500/50 bg-black px-2 py-0.5 text-xs text-green-300 hover:bg-green-950 disabled:opacity-30"
         >
           ‹
         </button>
@@ -118,14 +118,14 @@ export default function TimeSlider({ alertId }: { alertId: string }) {
           onChange={(e) => go(Number(e.target.value))}
           aria-label="Replay time"
           aria-valuetext={asOf == null ? 'Latest' : fmtT(shownTime)}
-          className="flex-1 accent-amber-400"
+          className="flex-1 accent-green-400"
         />
         <button
           type="button"
           aria-label="Next time step"
           disabled={idx >= last}
           onClick={() => go(idx + 1)}
-          className="rounded border border-slate-700 px-2 py-0.5 text-xs disabled:opacity-40"
+          className="rounded border border-green-500/50 bg-black px-2 py-0.5 text-xs text-green-300 hover:bg-green-950 disabled:opacity-30"
         >
           ›
         </button>
@@ -133,41 +133,21 @@ export default function TimeSlider({ alertId }: { alertId: string }) {
           type="button"
           onClick={() => go(last)}
           disabled={asOf == null}
-          className="rounded border border-slate-700 px-2 py-0.5 text-xs disabled:opacity-40"
+          className="rounded border border-green-500/50 bg-black px-2 py-0.5 text-[10px] font-bold text-green-300 hover:bg-green-950 disabled:opacity-30"
         >
           Latest
         </button>
       </div>
 
-      <div className="flex justify-between text-[11px] text-slate-500">
-        <span>{fmtT(points[0])}</span>
-        <span>{fmtT(points[last])}</span>
-      </div>
-
-      {mode === 'event' && (
-        <p className="text-xs text-slate-400">
-          Event timeline: shows when things happened, regardless of when they were reported.
-        </p>
-      )}
-
-      {mode === 'ingest' && asOf != null && pending.length > 0 && (
-        <p className="rounded border border-amber-500/60 px-2 py-1 text-xs text-amber-300">
-          {pending.length} event{pending.length > 1 ? 's' : ''} had already happened but had not
-          been reported yet ({pendingText}).
-        </p>
-      )}
-
-      {asOfScore && alert && (
-        <p className="text-xs text-slate-300">
-          Score from evidence known at this time:{' '}
-          <span className="text-amber-300">{fmt(asOfScore.new_score)}</span>{' '}
-          (current {fmt(alert.score)}).
-          {asOfScore.below_cutoff && ' Below the review budget cutoff at this time.'}
-          <span className="block text-slate-500">
-            Demo estimate: drops the evidence that had not yet arrived. The backend&apos;s
-            as-of score will replace this.
+      {asOfScore && (
+        <div className="text-[10px] text-green-300 border-t border-slate-900 pt-1 flex items-center justify-between">
+          <span>
+            Simulated score at this time: <strong className="text-white">{fmt(asOfScore.new_score)}</strong> ({asOfScore.delta > 0 ? `+${fmt(asOfScore.delta)}` : fmt(asOfScore.delta)})
           </span>
-        </p>
+          {pendingText && (
+            <span className="text-red-400 font-bold">⚠️ Pending ingestion: {pendingText}</span>
+          )}
+        </div>
       )}
     </div>
   );

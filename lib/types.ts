@@ -33,6 +33,7 @@ export type GraphNode = {
   id: string;
   type: 'account' | 'device' | 'merchant' | 'complaint';
   label: string;
+  flagged?: boolean;
 };
 
 export type GraphEdge = {

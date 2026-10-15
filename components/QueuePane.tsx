@@ -10,36 +10,40 @@ const STATUS_LABEL: Record<AlertStatus, string> = {
   open: 'Open',
   confirmed: 'Confirmed',
   dismissed: 'Dismissed',
-  needs_info: 'Needs more info',
+  needs_info: 'Needs Info',
 };
 
 const STATUS_STYLE: Record<AlertStatus, string> = {
-  open: 'bg-slate-800 text-slate-300',
-  confirmed: 'bg-sky-950 text-sky-300',
-  dismissed: 'bg-slate-800 text-slate-500',
-  needs_info: 'bg-amber-950 text-amber-300',
+  open: 'bg-black text-white border border-slate-700',
+  confirmed: 'bg-red-950 text-red-400 border border-red-500 font-black',
+  dismissed: 'bg-green-950 text-green-400 border border-green-500 font-black',
+  needs_info: 'bg-slate-900 text-slate-300 border border-slate-600',
 };
 
 function ScoreBar({ alert, inBudget }: { alert: Alert; inBudget: boolean }) {
   const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const isHighRisk = alert.score >= 0.7;
+
   return (
     <div
-      className="relative h-2 w-full rounded-full bg-slate-800"
+      className="relative h-2 w-full rounded-full bg-slate-900 border border-slate-800"
       role="img"
       aria-label={`Score ${alert.score.toFixed(2)}, plausible range ${alert.confidence_low.toFixed(2)} to ${alert.confidence_high.toFixed(2)}`}
     >
-      {/* confidence band: wider when data is missing */}
+      {/* Confidence range band */}
       <div
-        className="absolute inset-y-0 rounded-full bg-slate-600/60"
+        className="absolute inset-y-0 rounded-full bg-slate-800/80"
         style={{
           left: pct(alert.confidence_low),
           width: pct(alert.confidence_high - alert.confidence_low),
         }}
       />
-      {/* score marker */}
+      {/* Score indicator needle */}
       <div
-        className={`absolute top-1/2 h-3.5 w-1 -translate-y-1/2 rounded-sm ${
-          inBudget ? 'bg-amber-400' : 'bg-slate-400'
+        className={`absolute top-1/2 h-3.5 w-1.5 -translate-y-1/2 rounded-sm ${
+          isHighRisk
+            ? 'bg-red-500 shadow-[0_0_8px_rgba(255,0,63,0.9)]'
+            : 'bg-green-400 shadow-[0_0_8px_rgba(0,255,102,0.9)]'
         }`}
         style={{ left: pct(alert.score) }}
       />
@@ -53,14 +57,17 @@ function BaselineBadges({ flags }: { flags: Alert['baseline_flags'] }) {
     { key: 'velocity', label: 'Velocity' },
     { key: 'ml', label: 'ML' },
   ] as const;
+
   return (
-    <div className="flex items-center gap-1.5" aria-label="Baselines that also flagged this alert">
-      <span className="text-[11px] text-slate-500">Also flagged by</span>
+    <div className="flex items-center gap-1.5 font-mono" aria-label="Baselines that also flagged this alert">
+      <span className="text-[10px] text-slate-500">Also flagged by:</span>
       {items.map(({ key, label }) => (
         <span
           key={key}
-          className={`rounded px-1.5 py-0.5 text-[11px] ${
-            flags[key] ? 'bg-slate-700 text-slate-200' : 'bg-transparent text-slate-600 line-through'
+          className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+            flags[key]
+              ? 'bg-red-950 text-red-300 border border-red-500/60'
+              : 'bg-black text-slate-600 border border-slate-800 line-through'
           }`}
         >
           {label}
@@ -70,11 +77,6 @@ function BaselineBadges({ flags }: { flags: Alert['baseline_flags'] }) {
   );
 }
 
-/**
- * Baseline comparison panel shown when the "Compare baselines" toggle is active.
- * Displays a 4-column table: Baseline name | Flagged | Score | vs Graph Engine.
- * Scores for B1/B2/B3 are synthetic — in production these would come from the API.
- */
 function BaselineComparison({
   alert,
   flags,
@@ -82,8 +84,6 @@ function BaselineComparison({
   alert: Alert;
   flags: Alert['baseline_flags'];
 }) {
-  // Synthetic baseline scores derived deterministically from the alert score
-  // so they look plausible in demo mode.
   const graphScore = alert.score;
   const baselines = [
     {
@@ -107,110 +107,118 @@ function BaselineComparison({
   ];
 
   return (
-    <div className="mt-2 overflow-hidden rounded-md border border-slate-800 text-[11px]">
-      <table className="w-full border-collapse" aria-label="Baseline comparison">
-        <thead>
-          <tr className="bg-slate-800/60 text-slate-500">
-            <th className="py-1.5 pl-2 pr-1 text-left font-medium">Baseline</th>
-            <th className="px-1 py-1.5 text-center font-medium">Flagged</th>
-            <th className="px-1 py-1.5 text-center font-medium">Score</th>
-            <th className="px-1 py-1.5 pr-2 text-right font-medium text-amber-500">
-              Graph Engine
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {baselines.map((b) => (
-            <tr
-              key={b.id}
-              className="border-t border-slate-800/50"
-            >
-              <td className="py-1.5 pl-2 pr-1 text-slate-400">
-                <span className="font-mono text-slate-600">{b.id}</span>{' '}
-                {b.name}
-              </td>
-              <td className="px-1 py-1.5 text-center">
-                {b.flagged ? (
-                  <span className="text-slate-300">✓</span>
-                ) : (
-                  <span className="text-slate-700">✗</span>
-                )}
-              </td>
-              <td className="px-1 py-1.5 text-center font-mono text-slate-400">{b.score}</td>
-              {/* Graph Engine score in amber — only shown on first row, rowspan visually */}
-              {b.id === 'B1' ? (
-                <td
-                  className="px-1 py-1.5 pr-2 text-right font-mono font-semibold text-amber-400"
-                  rowSpan={3}
-                >
-                  {graphScore.toFixed(2)}
-                </td>
-              ) : null}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div
+      className="mt-2.5 rounded border border-green-500/30 bg-black/90 p-2 font-mono text-[11px]"
+      aria-label={`Baseline comparison for alert ${alert.id}`}
+    >
+      <div className="mb-1.5 flex items-center justify-between border-b border-slate-800 pb-1 text-[10px] text-slate-400">
+        <span>BASELINE MODEL</span>
+        <div className="flex gap-4">
+          <span>FLAG</span>
+          <span>SCORE</span>
+        </div>
+      </div>
+      <ul className="space-y-1">
+        {baselines.map((b) => (
+          <li key={b.id} className="flex items-center justify-between">
+            <span className="text-slate-300">
+              <span className="mr-1 text-slate-500">{b.id}</span>
+              {b.name}
+            </span>
+            <div className="flex items-center gap-4">
+              <span className={b.flagged ? 'font-bold text-red-400' : 'text-slate-600'}>
+                {b.flagged ? 'YES' : 'NO'}
+              </span>
+              <span className="w-8 text-right tabular-nums text-white">
+                {b.score}
+              </span>
+            </div>
+          </li>
+        ))}
+        <li className="flex items-center justify-between border-t border-slate-800 pt-1 text-green-400 font-bold">
+          <span>⚡ Graph Engine (Current)</span>
+          <div className="flex items-center gap-4">
+            <span className="text-red-400 font-bold">YES</span>
+            <span className="w-8 text-right tabular-nums">{alert.score.toFixed(2)}</span>
+          </div>
+        </li>
+      </ul>
     </div>
   );
 }
 
 export default function QueuePane() {
-  const { data, error, isLoading } = useAlerts(25);
+  const { data, isLoading, error } = useAlerts(25);
   const selectedAlertId = useStore((s) => s.selectedAlertId);
   const selectAlert = useStore((s) => s.selectAlert);
   const decisions = useStore((s) => s.decisions);
   const [showBaseline, setShowBaseline] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const alerts = data ? [...data.alerts].sort((a, b) => a.rank - b.rank) : [];
+  const alerts = data?.alerts ?? [];
 
-  // Keyboard navigation: ↑/↓ move selection when the list is focused
+  // Auto-select the first alert on mount so the workbench is never empty!
+  useEffect(() => {
+    if (alerts.length > 0 && !selectedAlertId) {
+      selectAlert(alerts[0].id);
+    }
+  }, [alerts, selectedAlertId, selectAlert]);
+
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (!['ArrowUp', 'ArrowDown'].includes(e.key)) return;
-      e.preventDefault();
+    (e: React.KeyboardEvent<HTMLUListElement>) => {
       if (alerts.length === 0) return;
       const currentIdx = alerts.findIndex((a) => a.id === selectedAlertId);
-      const nextIdx =
-        e.key === 'ArrowDown'
-          ? Math.min(alerts.length - 1, currentIdx + 1)
-          : Math.max(0, currentIdx - 1);
+      let nextIdx = currentIdx;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        nextIdx = currentIdx < alerts.length - 1 ? currentIdx + 1 : 0;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        nextIdx = currentIdx > 0 ? currentIdx - 1 : alerts.length - 1;
+      } else {
+        return;
+      }
+
       selectAlert(alerts[nextIdx].id);
-      // Scroll the newly focused item into view
       const item = listRef.current?.children[nextIdx] as HTMLElement | undefined;
       item?.scrollIntoView({ block: 'nearest' });
     },
-    [alerts, selectedAlertId, selectAlert],
+    [alerts, selectedAlertId, selectAlert]
   );
 
-  if (isLoading) return <LoadingState variant="skeleton" rows={5} label="Loading alert queue…" />;
+  if (isLoading) return <LoadingState variant="skeleton" rows={5} label="Loading analyst queue…" />;
   if (error || !data)
     return (
-      <p className="p-4 text-sm text-amber-300">
-        Could not load alerts. Check that the backend is running, or set NEXT_PUBLIC_DEMO=1 to use
-        fixtures.
+      <p className="p-4 text-xs font-mono text-red-400">
+        Could not load alerts from backend. Check that port 8000 is running.
       </p>
     );
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-slate-800 px-4 py-3">
+    <div className="flex h-full flex-col bg-black text-white font-mono select-none">
+      {/* Header */}
+      <div className="border-b border-green-500/40 px-4 py-3 bg-black">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-slate-100">Analyst queue</h2>
-            <p className="text-xs text-slate-400">
-              Review budget: top {data.budget_k} of {alerts.length} alerts
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <h2 className="text-xs font-black tracking-widest text-white uppercase">
+                ANALYST REVIEW QUEUE
+              </h2>
+            </div>
+            <p className="text-[10px] text-green-300/80 mt-0.5">
+              Review budget: top {data.budget_k} of {alerts.length} high-risk alerts
             </p>
           </div>
           <button
             type="button"
             onClick={() => setShowBaseline((v) => !v)}
             aria-pressed={showBaseline}
-            title="Toggle baseline comparison"
-            className={`mt-0.5 shrink-0 rounded border px-2.5 py-1 text-[11px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-amber-400 ${
+            className={`shrink-0 rounded border px-2 py-0.5 text-[10px] font-bold transition-colors ${
               showBaseline
-                ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
-                : 'border-slate-700 bg-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-green-400 bg-green-950 text-green-300'
+                : 'border-slate-800 bg-black text-slate-400 hover:text-white'
             }`}
           >
             {showBaseline ? '▲ Baselines' : '▼ Compare'}
@@ -218,19 +226,20 @@ export default function QueuePane() {
         </div>
 
         {showBaseline && (
-          <p className="mt-1.5 text-[11px] text-slate-500">
-            Showing B1 (Shared Device), B2 (Velocity), B3 (Isolation Forest) vs Graph Engine score.
+          <p className="mt-1.5 text-[10px] text-slate-400">
+            Comparing B1 (Device), B2 (Velocity), B3 (Isolation Forest) vs Graph Engine.
           </p>
         )}
       </div>
 
-      <p className="px-4 py-1.5 text-[10px] text-slate-600 select-none">
-        Tip: focus the list and use ↑ ↓ keys to navigate
-      </p>
+      <div className="px-4 py-1.5 text-[9px] text-slate-500 border-b border-slate-900 bg-black">
+        TIP: USE ↑ ↓ ARROW KEYS TO NAVIGATE ALERTS
+      </div>
 
+      {/* Alert List */}
       <ul
         ref={listRef}
-        className="flex-1 overflow-y-auto outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400/40"
+        className="flex-1 overflow-y-auto outline-none divide-y divide-slate-900"
         tabIndex={0}
         aria-label="Alert queue — use arrow keys to navigate"
         onKeyDown={handleKeyDown}
@@ -240,7 +249,7 @@ export default function QueuePane() {
           const selected = alert.id === selectedAlertId;
           const status = statusFor(alert, decisions);
           const topReasons = [...alert.reasons].sort((a, b) => b.points - a.points).slice(0, 2);
-
+          const isHighRisk = alert.score >= 0.7;
 
           return (
             <Fragment key={alert.id}>
@@ -249,38 +258,43 @@ export default function QueuePane() {
                   type="button"
                   onClick={() => selectAlert(alert.id)}
                   aria-pressed={selected}
-                  className={`block w-full border-b border-slate-800/70 px-4 py-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400 ${
-                    selected ? 'bg-slate-800/80' : 'hover:bg-slate-900'
-                  } ${inBudget ? '' : 'opacity-75'}`}
+                  className={`block w-full px-4 py-3 text-left transition-all outline-none ${
+                    selected
+                      ? 'bg-black border-l-4 border-l-green-400 border-r border-green-500/50 shadow-[inset_0_0_20px_rgba(0,255,102,0.15)]'
+                      : 'bg-black hover:bg-green-950/20'
+                  }`}
                 >
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-100">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-xs font-black text-white">
                       #{alert.rank} · {alert.id}
                     </span>
-                    <span className={`rounded px-2 py-0.5 text-[11px] ${STATUS_STYLE[status]}`}>
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] ${STATUS_STYLE[status]}`}>
                       {STATUS_LABEL[status]}
                     </span>
                   </div>
 
                   <div className="mb-2 flex items-center gap-3">
-                    <span className="w-10 text-sm tabular-nums text-slate-200">
+                    <span
+                      className={`w-9 text-xs font-black tabular-nums ${
+                        isHighRisk ? 'text-red-400' : 'text-green-400'
+                      }`}
+                    >
                       {alert.score.toFixed(2)}
                     </span>
                     <ScoreBar alert={alert} inBudget={inBudget} />
                   </div>
 
-                  <ul className="mb-2 space-y-0.5 text-xs text-slate-400">
+                  <ul className="mb-2 space-y-0.5 text-[11px] text-slate-300">
                     {topReasons.map((r) => (
                       <li key={r.rule} className="truncate" title={r.text}>
-                        {r.text}
+                        ⚡ {r.text}
                       </li>
                     ))}
                   </ul>
 
                   {alert.missing_data.length > 0 && (
-                    <p className="mb-2 text-[11px] text-amber-300/90">
-                      Incomplete data: {alert.missing_data.length} warning
-                      {alert.missing_data.length > 1 ? 's' : ''}, so the range is wider
+                    <p className="mb-2 text-[10px] text-red-400 font-bold">
+                      ⚠️ Incomplete data: {alert.missing_data.length} warning(s)
                     </p>
                   )}
 
@@ -295,11 +309,11 @@ export default function QueuePane() {
               {alert.rank === data.budget_k && (
                 <li
                   aria-label="Review budget cutoff"
-                  className="flex items-center gap-2 bg-slate-900 px-4 py-1.5 text-[11px] text-amber-300"
+                  className="flex items-center gap-2 bg-black border-y border-red-500/50 px-4 py-1 text-[10px] text-red-400 font-black uppercase"
                 >
-                  <span className="h-px flex-1 bg-amber-400/50" />
-                  Budget cutoff · alerts below are outside this review cycle
-                  <span className="h-px flex-1 bg-amber-400/50" />
+                  <span className="h-px flex-1 bg-red-500/50" />
+                  Budget cutoff · Top {data.budget_k} priority
+                  <span className="h-px flex-1 bg-red-500/50" />
                 </li>
               )}
             </Fragment>

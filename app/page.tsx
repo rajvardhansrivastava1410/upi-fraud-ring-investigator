@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import CyberGlobe3D, { type GlobeNode, type GlobeLink } from '@/components/CyberGlobe3D';
@@ -36,6 +36,63 @@ const QueuePane = dynamic(() => import('@/components/QueuePane'), { ssr: false }
 
 type ViewMode = '3d-globe' | 'carto-map' | 'split-hud' | 'workbench';
 
+// Dedicated self-contained footer ticker component to isolate re-renders from the main scene
+function LiveFooterTicker({ accountsCount, corridorsCount }: { accountsCount: number; corridorsCount: number }) {
+  const [tickerIndex, setTickerIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTickerIndex((prev) => prev + 1);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const activeTickers = [
+    { source: 'user-hdfc-3b1c [Mumbai]', target: 'mule-sbi-jamtara [Jamtara]', amt: '₹85,000', status: 'COLLECT_FAN_IN_FLAGGED', isAlert: true },
+    { source: 'user-icici-8d42 [Delhi]', target: 'mule-kotak-mewat [Mewat]', amt: '₹1,20,000', status: 'SHARED_DEVICE_BURST', isAlert: true },
+    { source: 'user-axis-c07e [Bengaluru]', target: 'mule-sbi-alwar [Alwar]', amt: '₹48,000', status: 'RAPID_DRAIN_INTERCEPTED', isAlert: true },
+    { source: 'user-pnb-kolkata [Kolkata]', target: 'mule-sbi-deoghar [Deoghar]', amt: '₹65,000', status: 'OTP_TROJAN_FORWARD', isAlert: true },
+    { source: 'user-kotak-pune [Pune]', target: 'user-hdfc-mum [Mumbai]', amt: '₹14,500', status: 'VERIFIED_DOMESTIC_P2P', isAlert: false },
+  ];
+  const currentTicker = activeTickers[tickerIndex % activeTickers.length];
+
+  return (
+    <footer className="h-10 shrink-0 border-t border-green-500/40 bg-black px-4 flex items-center justify-between z-30 font-mono text-xs">
+      <div className="flex items-center gap-3 overflow-hidden">
+        <div className="flex items-center gap-1.5 shrink-0 text-green-400 font-bold">
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <span>LIVE UPI CORRIDOR:</span>
+        </div>
+
+        <div className="flex items-center gap-2 truncate text-xs">
+          <span className="text-white font-bold">{currentTicker.source}</span>
+          <span className="text-green-400 font-bold">─── {currentTicker.amt} ───▶</span>
+          <span className="text-white font-bold">{currentTicker.target}</span>
+          <span
+            className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+              currentTicker.isAlert ? 'bg-red-950 text-red-400 border border-red-500 animate-pulse' : 'bg-green-950 text-green-400 border border-green-500'
+            }`}
+          >
+            [{currentTicker.status}]
+          </span>
+        </div>
+      </div>
+
+      <div className="hidden sm:flex items-center gap-4 shrink-0 text-[11px] text-slate-400">
+        <div>
+          DATABASE: <span className="text-white font-bold">{accountsCount} ACCOUNTS · {corridorsCount} CORRIDORS</span>
+        </div>
+        <div>
+          CURRENCY: <span className="text-green-400 font-bold">₹ INR ONLY</span>
+        </div>
+        <div>
+          CARTO API: <span className="text-green-400 font-bold">AUTHENTICATED</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 export default function Home() {
   const [viewMode, setViewMode] = useState<ViewMode>('3d-globe');
   const [geoData, setGeoData] = useState<{
@@ -52,7 +109,6 @@ export default function Home() {
 
   const [selectedNode, setSelectedNode] = useState<GlobeNode | null>(null);
   const [selectedLink, setSelectedLink] = useState<GlobeLink | null>(null);
-  const [tickerIndex, setTickerIndex] = useState(0);
   const [showKaggleHub, setShowKaggleHub] = useState(false);
 
   // Fetch live domestic Indian nodes, links, and impossible travel from FastAPI backend
@@ -90,7 +146,6 @@ export default function Home() {
         }
       })
       .catch(() => {
-        // Fallback Indian domestic fixtures
         const fallbackNodes: GlobeNode[] = [
           { id: 'ACC_0001', label: 'user-hdfc-3b1c', type: 'INDIVIDUAL', bank: 'HDFC', city: 'Mumbai', state: 'Maharashtra', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 19.076, lng: 72.8777, is_flagged: false },
           { id: 'ACC_0002', label: 'mule-sbi-jamtara', type: 'INDIVIDUAL', bank: 'SBI', city: 'Jamtara', state: 'Jharkhand', country: 'India', currency: 'INR', currency_symbol: '₹', lat: 23.9633, lng: 86.8029, is_flagged: true },
@@ -133,22 +188,15 @@ export default function Home() {
       });
   }, []);
 
-  // Cycle the live transaction ticker every 3 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTickerIndex((prev) => prev + 1);
-    }, 3000);
-    return () => clearInterval(timer);
+  const handleSelectNode = useCallback((node: GlobeNode) => {
+    setSelectedNode(node);
+    setSelectedLink(null);
   }, []);
 
-  const activeTickers = [
-    { source: 'user-hdfc-3b1c [Mumbai]', target: 'mule-sbi-jamtara [Jamtara]', amt: '₹85,000', status: 'COLLECT_FAN_IN_FLAGGED', isAlert: true },
-    { source: 'user-icici-8d42 [Delhi]', target: 'mule-kotak-mewat [Mewat]', amt: '₹1,20,000', status: 'SHARED_DEVICE_BURST', isAlert: true },
-    { source: 'user-axis-c07e [Bengaluru]', target: 'mule-sbi-alwar [Alwar]', amt: '₹48,000', status: 'RAPID_DRAIN_INTERCEPTED', isAlert: true },
-    { source: 'user-pnb-kolkata [Kolkata]', target: 'mule-sbi-deoghar [Deoghar]', amt: '₹65,000', status: 'OTP_TROJAN_FORWARD', isAlert: true },
-    { source: 'user-kotak-pune [Pune]', target: 'user-hdfc-mum [Mumbai]', amt: '₹14,500', status: 'VERIFIED_DOMESTIC_P2P', isAlert: false },
-  ];
-  const currentTicker = activeTickers[tickerIndex % activeTickers.length];
+  const handleSelectLink = useCallback((link: GlobeLink) => {
+    setSelectedLink(link);
+    setSelectedNode(null);
+  }, []);
 
   return (
     <div className="flex h-screen w-screen flex-col bg-black text-white font-mono overflow-hidden select-none">
@@ -239,19 +287,13 @@ export default function Home() {
         {/* VIEW 1: 3D CYBER GLOBE (Side-by-side with Live Rupee Transaction Feed & Pattern Panel) */}
         {viewMode === '3d-globe' && (
           <div className="flex flex-col lg:flex-row w-full h-full divide-y lg:divide-y-0 lg:divide-x divide-green-500/40">
-            {/* Left Stage: 3D Cyber Globe (Zooming into India) */}
+            {/* Left Stage: 3D Cyber Globe (Zooming directly into India and staying) */}
             <div className="relative flex-1 h-full min-h-[400px]">
               <CyberGlobe3D
                 nodes={geoData.nodes}
                 links={geoData.links}
-                onSelectNode={(node) => {
-                  setSelectedNode(node);
-                  setSelectedLink(null);
-                }}
-                onSelectLink={(link) => {
-                  setSelectedLink(link);
-                  setSelectedNode(null);
-                }}
+                onSelectNode={handleSelectNode}
+                onSelectLink={handleSelectLink}
               />
               <PipelineSequenceController />
             </div>
@@ -261,10 +303,7 @@ export default function Home() {
               <LiveRupeeTransactionFeed
                 links={geoData.links}
                 nodes={geoData.nodes}
-                onSelectLink={(link) => {
-                  setSelectedLink(link);
-                  setSelectedNode(null);
-                }}
+                onSelectLink={handleSelectLink}
                 onSelectHotspot={(city) => {
                   setViewMode('carto-map');
                 }}
@@ -280,14 +319,8 @@ export default function Home() {
               nodes={geoData.nodes}
               links={geoData.links}
               impossibleTravel={geoData.impossible_travel}
-              onSelectNode={(node) => {
-                setSelectedNode(node);
-                setSelectedLink(null);
-              }}
-              onSelectLink={(link) => {
-                setSelectedLink(link);
-                setSelectedNode(null);
-              }}
+              onSelectNode={handleSelectNode}
+              onSelectLink={handleSelectLink}
             />
           </div>
         )}
@@ -299,8 +332,8 @@ export default function Home() {
               <CyberGlobe3D
                 nodes={geoData.nodes}
                 links={geoData.links}
-                onSelectNode={setSelectedNode}
-                onSelectLink={setSelectedLink}
+                onSelectNode={handleSelectNode}
+                onSelectLink={handleSelectLink}
               />
             </div>
             <div className="relative w-full h-full">
@@ -308,23 +341,23 @@ export default function Home() {
                 nodes={geoData.nodes}
                 links={geoData.links}
                 impossibleTravel={geoData.impossible_travel}
-                onSelectNode={setSelectedNode}
-                onSelectLink={setSelectedLink}
+                onSelectNode={handleSelectNode}
+                onSelectLink={handleSelectLink}
               />
             </div>
           </div>
         )}
 
-        {/* VIEW 4: WORKBENCH (Cytoscape 3-pane) */}
+        {/* VIEW 4: WORKBENCH (Arranged properly with 3 cyber columns: Queue, Graph Explorer, Evidence Analysis) */}
         {viewMode === 'workbench' && (
-          <div className="min-h-0 flex-1 flex flex-col lg:grid lg:grid-cols-[320px_1fr_380px] w-full h-full">
-            <section className="hidden lg:flex min-h-0 flex-col border-r border-green-500/30 overflow-y-auto bg-black">
+          <div className="min-h-0 flex-1 grid grid-cols-1 lg:grid-cols-[330px_1fr_390px] w-full h-full divide-y lg:divide-y-0 lg:divide-x divide-green-500/40 bg-black">
+            <section className="min-h-0 h-full overflow-hidden flex flex-col bg-black">
               <QueuePane />
             </section>
             <section className="min-h-0 flex-1 h-full overflow-hidden flex flex-col bg-black">
               <GraphPane />
             </section>
-            <section className="min-h-0 border-t border-green-500/30 lg:border-t-0 lg:border-l h-full overflow-hidden flex flex-col bg-black">
+            <section className="min-h-0 h-full overflow-hidden flex flex-col bg-black">
               <EvidencePane />
             </section>
           </div>
@@ -349,39 +382,10 @@ export default function Home() {
       </main>
 
       {/* Bottom Live Pipeline Stream Ticker */}
-      <footer className="h-10 shrink-0 border-t border-green-500/40 bg-black px-4 flex items-center justify-between z-30 font-mono text-xs">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex items-center gap-1.5 shrink-0 text-green-400 font-bold">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span>LIVE UPI CORRIDOR:</span>
-          </div>
-
-          <div className="flex items-center gap-2 truncate text-xs">
-            <span className="text-white font-bold">{currentTicker.source}</span>
-            <span className="text-green-400 font-bold">─── {currentTicker.amt} ───▶</span>
-            <span className="text-white font-bold">{currentTicker.target}</span>
-            <span
-              className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                currentTicker.isAlert ? 'bg-red-950 text-red-400 border border-red-500 animate-pulse' : 'bg-green-950 text-green-400 border border-green-500'
-              }`}
-            >
-              [{currentTicker.status}]
-            </span>
-          </div>
-        </div>
-
-        <div className="hidden sm:flex items-center gap-4 shrink-0 text-[11px] text-slate-400">
-          <div>
-            DATABASE: <span className="text-white font-bold">{geoData.nodes.length} ACCOUNTS · {geoData.links.length} CORRIDORS</span>
-          </div>
-          <div>
-            CURRENCY: <span className="text-green-400 font-bold">₹ INR ONLY</span>
-          </div>
-          <div>
-            CARTO API: <span className="text-green-400 font-bold">AUTHENTICATED</span>
-          </div>
-        </div>
-      </footer>
+      <LiveFooterTicker
+        accountsCount={geoData.nodes.length}
+        corridorsCount={geoData.links.length}
+      />
     </div>
   );
 }
