@@ -85,10 +85,12 @@ export default function CartoWorldMap({
 
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      // CARTO Dark Matter Tiles
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', {
+      // CARTO Dark Matter Tiles with Authenticated Key
+      const cartoKey = 'cb1_4lfs_1_877e963395929fdf32bcaa9c';
+      L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${cartoKey}`, {
         subdomains: 'abcd',
         maxZoom: 19,
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
       }).addTo(map);
 
       // 1. Render Links / Pipelines as animated SVG polylines
