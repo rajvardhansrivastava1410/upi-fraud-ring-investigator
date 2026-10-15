@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "fam1",
+      "type": "account",
+      "label": "acct_a001"
+    },
+    {
+      "id": "fam2",
+      "type": "account",
+      "label": "acct_a002"
+    },
+    {
+      "id": "fam3",
+      "type": "account",
+      "label": "acct_a003"
+    },
+    {
+      "id": "fam4",
+      "type": "account",
+      "label": "acct_a004"
+    },
+    {
+      "id": "dev_old",
+      "type": "device",
+      "label": "dev_9c1"
+    },
+    {
+      "id": "mer_12",
+      "type": "merchant",
+      "label": "Grocery (est. 2019)"
+    }
+  ],
+  "edges": [
+    {
+      "id": "d33",
+      "source": "fam1",
+      "target": "dev_old",
+      "type": "uses_device",
+      "event_time": "2023-02-10T10:00:00+05:30",
+      "ingest_time": "2023-02-10T10:01:00+05:30"
+    },
+    {
+      "id": "d34",
+      "source": "fam2",
+      "target": "dev_old",
+      "type": "uses_device",
+      "event_time": "2023-02-10T10:05:00+05:30",
+      "ingest_time": "2023-02-10T10:06:00+05:30"
+    },
+    {
+      "id": "d35",
+      "source": "fam3",
+      "target": "dev_old",
+      "type": "uses_device",
+      "event_time": "2023-06-18T19:30:00+05:30",
+      "ingest_time": "2023-06-18T19:31:00+05:30"
+    },
+    {
+      "id": "d36",
+      "source": "fam4",
+      "target": "dev_old",
+      "type": "uses_device",
+      "event_time": "2024-01-05T08:15:00+05:30",
+      "ingest_time": "2024-01-05T08:16:00+05:30"
+    },
+    {
+      "id": "t601",
+      "source": "fam1",
+      "target": "fam2",
+      "type": "transfer",
+      "event_time": "2026-10-01T20:10:00+05:30",
+      "ingest_time": "2026-10-01T20:11:00+05:30",
+      "amount": 500
+    },
+    {
+      "id": "t602",
+      "source": "fam3",
+      "target": "mer_12",
+      "type": "pays_merchant",
+      "event_time": "2026-10-03T11:45:00+05:30",
+      "ingest_time": "2026-10-03T11:46:00+05:30",
+      "amount": 840
+    },
+    {
+      "id": "t603",
+      "source": "fam2",
+      "target": "mer_12",
+      "type": "pays_merchant",
+      "event_time": "2026-10-06T17:20:00+05:30",
+      "ingest_time": "2026-10-06T17:21:00+05:30",
+      "amount": 1260
+    }
+  ],
+  "evidence_path": [
+    "d33",
+    "d34",
+    "d35",
+    "d36"
+  ]
+}

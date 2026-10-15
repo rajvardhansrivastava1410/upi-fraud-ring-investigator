@@ -1,0 +1,217 @@
+{
+  "budget_k": 3,
+  "alerts": [
+    {
+      "id": "A-014",
+      "rank": 1,
+      "score": 0.86,
+      "confidence_low": 0.74,
+      "confidence_high": 0.92,
+      "status": "open",
+      "reasons": [
+        {
+          "rule": "R1_collect_fan_in",
+          "points": 0.34,
+          "text": "3 distinct payers answered collect requests from one account within 10 min",
+          "edge_ids": [
+            "t101",
+            "t102",
+            "t103"
+          ]
+        },
+        {
+          "rule": "R2_pass_through",
+          "points": 0.31,
+          "text": "94% of inflow left the account within 4 min",
+          "edge_ids": [
+            "t120",
+            "t121"
+          ]
+        },
+        {
+          "rule": "R4_complaint_convergence",
+          "points": 0.21,
+          "text": "3 complaints on this account and its neighbours",
+          "edge_ids": [
+            "c301",
+            "c302",
+            "c303"
+          ]
+        }
+      ],
+      "benign_discounts": [],
+      "missing_data": [],
+      "baseline_flags": {
+        "shared_device": true,
+        "velocity": true,
+        "ml": true
+      }
+    },
+    {
+      "id": "A-027",
+      "rank": 2,
+      "score": 0.71,
+      "confidence_low": 0.48,
+      "confidence_high": 0.84,
+      "status": "open",
+      "reasons": [
+        {
+          "rule": "R2_pass_through",
+          "points": 0.38,
+          "text": "Chain of 4 accounts forwarded funds within 2 h, each keeping a small cut",
+          "edge_ids": [
+            "t210",
+            "t211",
+            "t212"
+          ]
+        },
+        {
+          "rule": "R5_fresh_velocity",
+          "points": 0.24,
+          "text": "Two accounts under 9 days old with sudden high activity",
+          "edge_ids": [
+            "t210"
+          ]
+        },
+        {
+          "rule": "R3_device_sharing",
+          "points": 0.09,
+          "text": "Two accounts share a device (weighted by account age)",
+          "edge_ids": [
+            "d11"
+          ]
+        }
+      ],
+      "benign_discounts": [],
+      "missing_data": [
+        "device_id missing on 3 of 11 transfers",
+        "No complaints received yet (latest ingest: day 12)"
+      ],
+      "baseline_flags": {
+        "shared_device": true,
+        "velocity": false,
+        "ml": true
+      }
+    },
+    {
+      "id": "A-009",
+      "rank": 3,
+      "score": 0.63,
+      "confidence_low": 0.52,
+      "confidence_high": 0.7,
+      "status": "needs_info",
+      "reasons": [
+        {
+          "rule": "R1_collect_fan_in",
+          "points": 0.29,
+          "text": "11 payers to one requester in a single evening",
+          "edge_ids": [
+            "t401",
+            "t402"
+          ]
+        },
+        {
+          "rule": "R2_pass_through",
+          "points": 0.27,
+          "text": "Pooled funds forwarded to a merchant with little history",
+          "edge_ids": [
+            "t430"
+          ]
+        },
+        {
+          "rule": "R4_complaint_convergence",
+          "points": 0.07,
+          "text": "1 complaint, reported 9 days after the first transfer",
+          "edge_ids": [
+            "c410"
+          ]
+        }
+      ],
+      "benign_discounts": [],
+      "missing_data": [
+        "merchant category missing"
+      ],
+      "baseline_flags": {
+        "shared_device": false,
+        "velocity": true,
+        "ml": false
+      }
+    },
+    {
+      "id": "A-033",
+      "rank": 4,
+      "score": 0.44,
+      "confidence_low": 0.31,
+      "confidence_high": 0.58,
+      "status": "open",
+      "reasons": [
+        {
+          "rule": "R2_pass_through",
+          "points": 0.36,
+          "text": "Rapid outflow after inflow on one account",
+          "edge_ids": [
+            "t520",
+            "t521"
+          ]
+        },
+        {
+          "rule": "R3_device_sharing",
+          "points": 0.18,
+          "text": "One device used by 6 accounts",
+          "edge_ids": [
+            "d21"
+          ]
+        }
+      ],
+      "benign_discounts": [
+        {
+          "name": "established_merchant_relationship",
+          "points": -0.07
+        },
+        {
+          "name": "many_payers_over_long_period",
+          "points": -0.03
+        }
+      ],
+      "missing_data": [],
+      "baseline_flags": {
+        "shared_device": true,
+        "velocity": true,
+        "ml": false
+      }
+    },
+    {
+      "id": "A-051",
+      "rank": 5,
+      "score": 0.21,
+      "confidence_low": 0.12,
+      "confidence_high": 0.3,
+      "status": "open",
+      "reasons": [
+        {
+          "rule": "R3_device_sharing",
+          "points": 0.31,
+          "text": "One device used by 4 accounts",
+          "edge_ids": [
+            "d33",
+            "d34",
+            "d35",
+            "d36"
+          ]
+        }
+      ],
+      "benign_discounts": [
+        {
+          "name": "old_stable_device",
+          "points": -0.1
+        }
+      ],
+      "missing_data": [],
+      "baseline_flags": {
+        "shared_device": true,
+        "velocity": false,
+        "ml": false
+      }
+    }
+  ]
+}
