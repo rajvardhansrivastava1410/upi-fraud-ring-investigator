@@ -120,18 +120,31 @@ export default function CyberGlobe3D({
     const globeGroup = new THREE.Group();
     scene.add(globeGroup);
 
-    // Compute exact target quaternion so India center (lat: 22.8, lng: 79.2) is DEAD CENTER in the camera
+    // Compute exact orthonormal rotation so India center (lat: 22.8, lng: 79.2) is DEAD CENTER facing camera
+    // and NORTH is pointing strictly UP (+Y), SOUTH DOWN (-Y), WEST LEFT (-X), EAST RIGHT (+X).
     const indiaPos = latLngToVector3(22.8, 79.2, 100);
-    const indiaNormal = indiaPos.clone().normalize();
-    // Rotate vector from indiaNormal to camera axis (0, 0, 1)
-    const targetQuat = new THREE.Quaternion().setFromUnitVectors(
-      indiaNormal,
-      new THREE.Vector3(0, 0, 1)
-    );
+    const forward = indiaPos.clone().normalize(); // Normal vector facing outwards from India
 
-    // Initial space starting orientation (tilted slightly away)
+    // Tangent pointing directly North along the meridian:
+    const northPt = latLngToVector3(23.8, 79.2, 100);
+    const northTangent = northPt.clone().sub(indiaPos).normalize();
+    // Gram-Schmidt orthogonalization: ensure Up is perpendicular to Forward
+    const up = northTangent.clone().sub(forward.clone().multiplyScalar(northTangent.dot(forward))).normalize();
+    // Right = cross(up, forward) points directly East
+    const right = new THREE.Vector3().crossVectors(up, forward).normalize();
+
+    // Orthonormal basis transformation matrix: transforms (right, up, forward) to (+X, +Y, +Z)
+    const rotMatrix = new THREE.Matrix4().set(
+      right.x,   right.y,   right.z,   0,
+      up.x,      up.y,      up.z,      0,
+      forward.x, forward.y, forward.z, 0,
+      0,         0,         0,         1
+    );
+    const targetQuat = new THREE.Quaternion().setFromRotationMatrix(rotMatrix);
+
+    // Initial space starting orientation (smoothly rotates around Y-axis into India)
     const startQuat = targetQuat.clone().multiply(
-      new THREE.Quaternion().setFromEuler(new THREE.Euler(0.35, -1.8, 0.15))
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -0.75)
     );
 
     globeGroup.quaternion.copy(startQuat);
